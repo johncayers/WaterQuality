@@ -1,0 +1,144 @@
+---
+title: "East Fork Creek Stream Metabolism Summary"
+author: "John C. Ayers"
+output:
+  html_document:
+    df_print: paged
+---
+
+This notebook is for creating summary plots of stream metabolism parameters estimated from dissolved oxygen time series using the BASEmetab package of Grace et al. (2015). In-situ measurements collected from East Fork Creek in Franklin, TN by John C. Ayers, Weizhuo Jing, Kevin Chen, Ella Daugherty, and Gabriel Perez.  
+Reference:
+Grace MR, Giling DP, Hladyz S, et al (2015) Fast processing of diel oxygen curves: Estimating stream metabolism with BASE (BAyesian Single-station Estimation). Limnol. Oceanogr. methods / 13:e10011
+
+```{r set-global, include=FALSE}
+# Suppress all error messages
+knitr::opts_chunk$set(error = FALSE)
+```
+
+### Useful packages
+
+```{r import packages}
+if (!require("pacman"))
+   install.packages("pacman")
+pacman::p_load(tidyverse, skimr, svglite)
+```
+
+```{r}
+# setwd("C:/Users/ayersj.VANDERBILT/OneDrive - Vanderbilt/Shared Documents/Pilot Project - Water Quality/WaterQualityCode/2022/EFC")
+Data <- read_csv("EFC_StreamMetabolismSummary.csv", 
+    col_types = cols(Date = col_date(format = "%m/%d/%Y"), 
+        Device = col_factor(levels = c("MiniDOT", 
+            "Exo2"))))
+skim(Data)
+```
+
+```{r}
+
+DataLong <- Data %>%
+  rename(GPP = GPP.mean, ER = ER.mean, NEP = NEP.mean) %>%
+  gather(GPP, ER, NEP, key = "Parameter", value = "Value")
+  
+DataLong$max <- c(0)
+DataLong$min <- c(0)
+j <- nrow(DataLong)
+for (i in 1:j) {
+  if (DataLong$Parameter[i] == "GPP") {
+  DataLong$max[i] <- DataLong$Value[i] + DataLong$GPP.sd[i]
+  DataLong$min[i] <- DataLong$Value[i] - DataLong$GPP.sd[i]
+}  
+else if (DataLong$Parameter[i] == "ER") {
+  DataLong$max[i] <- DataLong$Value[i] + DataLong$ER.sd[i]
+  DataLong$min[i] <- DataLong$Value[i] - DataLong$ER.sd[i]
+} 
+  else {
+  DataLong$max[i] <- DataLong$Value[i] + DataLong$NEP.sd[i]
+  DataLong$min[i] <- DataLong$Value[i] - DataLong$NEP.sd[i]
+}
+}
+DataLong$Parameter <- factor(DataLong$Parameter)
+DataPlot <- DataLong %>%
+  dplyr::select(Date, Device, Parameter, Value, max, min)
+ 
+```
+
+### Plot of GPP vs. ER
+
+```{r}
+Data <- filter(Data, ER.mean < 50)
+Data <- mutate(Data,
+               xlow = GPP.mean-GPP.sd,
+               xhigh = GPP.mean+GPP.sd,
+               ylow = ER.mean-ER.sd,
+               yhigh = ER.mean+ER.sd
+)
+p <- ggplot(Data, aes(x=GPP.mean, y=ER.mean, color = Device)) +
+  geom_point(shape=1) +
+  geom_errorbar(aes(ymin=ylow, ymax=yhigh)) +
+  geom_errorbarh(aes(xmin=xlow, xmax=xhigh)) +
+  theme_bw() +
+  geom_abline(slope=1, intercept=0) +
+  xlab("GPP mean (mg O2 L-1 d-1)") +
+  ylab("ER mean (mg O2 L-1 d-1)") +
+  coord_cartesian(xlim = c(0, 40), ylim = c(0,40))
+print(p)
+ggsave("EFC_GPPvsER_ErrorBars.svg", width = 2000, height = 2*618, units = "px")
+
+```
+
+### Temporal trends in stream metabolism parameters
+
+```{r}
+p <- ggplot(DataPlot, aes(x = Date, y = Value, color = Parameter)) +
+  geom_errorbar(aes(ymin = min, ymax = max)) +
+  geom_point(aes(shape = Device)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  theme_bw()
+print(p)
+ggsave("EFC_StreamMetab_ErrorBars.png", width = 2000, height = 2*618, units = "px")
+
+```
+
+Try plotting without outliers on 2022-10-25
+
+```{r}
+FilteredDataPlot <- filter(DataPlot, Date != "2022-10-25")
+p <- ggplot(FilteredDataPlot, aes(x = Date, y = Value, color = Parameter)) +
+  geom_errorbar(aes(ymin = min, ymax = max)) +
+  geom_point(aes(shape = Device)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  theme_bw()
+print(p)
+ggsave("EFC_StreamMetab_ErrorBars_Filtered.png", width = 2000, height = 2*618, units = "px")
+
+```
+
+### Stacked area plot of ER and GPP
+
+```{r}
+
+DataMean <- DataPlot %>%
+  group_by(Date, Parameter) %>%
+  filter(Parameter != "NEP") %>%
+  summarize(
+       Value = mean(Value)
+      )
+
+j <- nrow(DataMean)
+for (i in 1:j) {
+   if(DataMean$Parameter[i] == "ER") {
+    DataMean$Value[i] <- -DataMean$Value[i]
+   }
+}
+ 
+DataMean
+
+p <- ggplot(DataMean, aes(x=Date, y = Value, fill = Parameter)) +
+  geom_area() +
+  scale_fill_manual(values = c("brown", "green")) +
+  ylim(-35,35) +
+  ylab("Value (mg O2 L-1 day-1)")
+print(p)
+ggsave("EFC_GPPvsER.png", width = 2000, height = 2*618, units = "px")
+
+```
+

@@ -1,0 +1,793 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<GSS version="1">
+  <info>
+    <ctime>20211130163253</ctime>
+    <mtime>20211130170853</mtime>
+    <comments />
+  </info>
+  <config>
+    <properties checklimits="false" fontname="Arial" fontsize="10" omithidden="false" omitlessthan="false" omitzero="false" protected="false" showunits="true" significantdigits="4" vardisplay="name" varorientation="columns" />
+    <mixvals MixByVolume="true" MixEqualProportion="true" MixSaveAsSample="false" MixScaleResultAs="2" />
+    <calcheader />
+    <calctrailer />
+    <widths data="20.000000" mix="20.000000" name="20.000000" rj="8.000000" rv="20.000000" sj="8.000000" sv="20.000000" unit="15.000000" />
+    <tolerances replicate="5.000000" standard="10.000000" />
+  </config>
+  <data>
+    <thermo>%PROGRAMFILES%\Gwb\Gtdata\thermo.tdat</thermo>
+    <limits>%PROGRAMFILES%\Gwb\Gtdata\WaterQualityRegs.dat</limits>
+    <conductivity>%PROGRAMFILES%\Gwb\Gtdata\conductivity-USGS.dat</conductivity>
+  </data>
+  <decouple />
+  <elements>
+    <element mw="14.006700" name="Nitrogen" />
+    <element mw="32.060000" name="Sulfur" />
+  </elements>
+  <SpeciesEquivalents>
+    <species name="NH4+">
+      <speceq dCoef="1.000000" dMw="17.030400" espec="NH3" nCharge="0" />
+    </species>
+    <species name="SO4--">
+      <speceq dCoef="1.000000" dMw="98.073400" espec="H2SO4" nCharge="0" />
+      <speceq dCoef="1.000000" dMw="97.065500" espec="HSO4-" nCharge="-1" />
+    </species>
+  </SpeciesEquivalents>
+  <variables>
+    <variable class="Chemical parameters" dimension="Text" sv="Sample ID" unit="text">Sample ID</variable>
+    <variable class="Chemical parameters" color="963634" dimension="pH" maximum="8.5" minimum="6.5" notes="NSDWR" size="14" sv="pH" symbol="square" unit="pH">
+      pH
+      <composition>
+        <elemental />
+        <species />
+      </composition>
+    </variable>
+    <variable class="Chemical parameters" color="963634" conserved="true" dimension="Temperature" size="14" sv="Temperature" symbol="circle" unit="C">
+      Temperature
+      <composition>
+        <elemental />
+        <species />
+      </composition>
+    </variable>
+    <variable class="Basis species" color="963634" conserved="true" moleweight="31.998800" size="14" symbol="delta" unit="mg/l">
+      O2(aq)
+      <composition>
+        <elemental />
+        <species>
+          <component coef="-1.000000" name="O2(aq)" />
+          <component coef="1.000000" name="O2(aq)" />
+        </species>
+      </composition>
+    </variable>
+    <variable class="Chemical parameters" color="963634" dimension="Electrical potential" size="14" sv="Eh" symbol="caution" unit="V">
+      Eh
+      <composition>
+        <elemental />
+        <species />
+      </composition>
+    </variable>
+    <variable class="Chemical parameters" color="963634" dimension="Conductivity" size="14" symbol="degree" unit="uS/cm">
+      Electrical conductivity
+      <composition>
+        <elemental />
+        <species />
+      </composition>
+    </variable>
+    <variable charge="1.000000" class="Basis species" color="963634" conserved="true" moleweight="18.038300" size="14" symbol="mobius" unit="mg/l">
+      NH4+
+      <composition>
+        <elemental>
+          <element coef="1.000000" name="Nitrogen" />
+        </elemental>
+        <species>
+          <component coef="-1.000000" name="NH4+" />
+          <component coef="1.000000" name="NO3-" />
+          <component coef="2.000000" name="H+" />
+          <component coef="1.000000" name="H2O" />
+          <component coef="-2.000000" name="O2(aq)" />
+        </species>
+      </composition>
+    </variable>
+    <variable charge="-1.000000" class="Basis species" color="963634" conserved="true" moleweight="62.004900" size="14" symbol="pentagram" unit="mg/l">
+      NO3-
+      <composition>
+        <elemental>
+          <element coef="1.000000" name="Nitrogen" />
+        </elemental>
+        <species>
+          <component coef="-1.000000" name="NO3-" />
+          <component coef="1.000000" name="NO3-" />
+        </species>
+      </composition>
+    </variable>
+    <variable calculated="true" class="Chemical parameters" color="963634" dimension="Electrical potential" native_unit="V" size="14" symbol="blot" unit="mV">
+      Eh (O2(aq) /H2O  )
+      <composition>
+        <elemental />
+        <species />
+      </composition>
+    </variable>
+    <variable calculated="true" class="Chemical parameters" color="963634" dimension="Electrical potential" native_unit="V" size="14" symbol="triangle" unit="mV">
+      Eh (NO3- /NH4+  )
+      <composition>
+        <elemental />
+        <species />
+      </composition>
+    </variable>
+    <variable charge="-2.000000" class="Basis species" color="963634" conserved="true" moleweight="96.057600" size="14" symbol="yield" unit="mg/l">
+      SO4--
+      <composition>
+        <elemental>
+          <element coef="1.000000" name="Sulfur" />
+        </elemental>
+        <species>
+          <component coef="-1.000000" name="SO4--" />
+          <component coef="1.000000" name="SO4--" />
+        </species>
+      </composition>
+    </variable>
+    <variable class="Chemical parameters" color="963634" dimension="Alkalinity" moleweight="100.089000" size="14" sv="Hardness" symbol="del" unit="mg/l_as_CaCO3">
+      Hardness
+      <composition>
+        <elemental />
+        <species />
+      </composition>
+    </variable>
+  </variables>
+  <samples>
+    <sample color="963634" density="0.996090" selected="true" size="14" smass="1.000000" symbol="box" tds="59.131000" wmass="0.999941">
+      <quantity variable="0">Nolensville Park</quantity>
+      <quantity variable="1">8.460000000000001</quantity>
+      <quantity variable="2">23.8</quantity>
+      <quantity variable="4">314.9</quantity>
+      <quantity variable="5">557</quantity>
+      <quantity variable="6">0.016</quantity>
+      <quantity variable="7">0.615</quantity>
+      <quantity calculated="true" variable="8" />
+      <quantity calculated="true" variable="9" />
+      <quantity variable="10">58.5</quantity>
+      <quantity variable="11">207</quantity>
+    </sample>
+    <sample color="963634" density="0.995443" selected="true" size="14" smass="1.000000" symbol="circle" tds="37.720000" wmass="0.999962">
+      <quantity variable="0">Culbertson Road</quantity>
+      <quantity variable="1">8.34</quantity>
+      <quantity variable="2">26.4</quantity>
+      <quantity variable="4">333</quantity>
+      <quantity variable="5">514</quantity>
+      <quantity variable="6">0.047</quantity>
+      <quantity variable="7">0.673</quantity>
+      <quantity calculated="true" variable="8" />
+      <quantity calculated="true" variable="9" />
+      <quantity variable="10">37</quantity>
+      <quantity variable="11">189</quantity>
+    </sample>
+    <sample color="963634" density="0.994651" selected="true" size="14" smass="1.000000" symbol="delta" tds="66.512000" wmass="0.999933">
+      <quantity variable="0">Ezel Park Road</quantity>
+      <quantity variable="1">8.550000000000001</quantity>
+      <quantity variable="2">29.5</quantity>
+      <quantity variable="4">340.6</quantity>
+      <quantity variable="5">546</quantity>
+      <quantity variable="6">0.037</quantity>
+      <quantity variable="7">0.675</quantity>
+      <quantity calculated="true" variable="8" />
+      <quantity calculated="true" variable="9" />
+      <quantity variable="10">65.8</quantity>
+      <quantity variable="11">173</quantity>
+    </sample>
+    <sample color="963634" density="0.995274" selected="true" size="14" smass="1.000000" symbol="del" tds="51.347000" wmass="0.999949">
+      <quantity variable="0">Whitsett Park</quantity>
+      <quantity variable="1">8.529999999999999</quantity>
+      <quantity variable="2">27.1</quantity>
+      <quantity variable="4">332.6</quantity>
+      <quantity variable="5">539</quantity>
+      <quantity variable="6">0.022</quantity>
+      <quantity variable="7">0.725</quantity>
+      <quantity calculated="true" variable="8" />
+      <quantity calculated="true" variable="9" />
+      <quantity variable="10">50.6</quantity>
+      <quantity variable="11">203</quantity>
+    </sample>
+    <sample color="963634" density="0.994919" selected="true" size="14" smass="1.000000" symbol="caution" tds="65.509000" wmass="0.999934">
+      <quantity variable="0">Elm Hill</quantity>
+      <quantity variable="1">8.75</quantity>
+      <quantity variable="2">28.5</quantity>
+      <quantity variable="4">337</quantity>
+      <quantity variable="5">516</quantity>
+      <quantity variable="7">0.709</quantity>
+      <quantity calculated="true" variable="8" />
+      <quantity calculated="true" variable="9" />
+      <quantity variable="10">64.8</quantity>
+      <quantity variable="11">157</quantity>
+    </sample>
+    <sample color="963634" density="0.995082" selected="true" size="14" smass="1.000000" symbol="degree" tds="73.749000" wmass="0.999926">
+      <quantity variable="0">Lebanon Pike</quantity>
+      <quantity variable="1">8.529999999999999</quantity>
+      <quantity variable="2">27.9</quantity>
+      <quantity variable="4">358.5</quantity>
+      <quantity variable="5">552</quantity>
+      <quantity variable="6">0.019</quantity>
+      <quantity variable="7">1.13</quantity>
+      <quantity calculated="true" variable="8" />
+      <quantity calculated="true" variable="9" />
+      <quantity variable="10">72.59999999999999</quantity>
+      <quantity variable="11">157</quantity>
+    </sample>
+    <sample color="963634" density="0.995848" selected="true" size="14" smass="1.000000" symbol="mobius" tds="54.707000" wmass="0.999945">
+      <quantity variable="0">Lebanon Pike</quantity>
+      <quantity variable="1">7.81</quantity>
+      <quantity variable="2">24.8</quantity>
+      <quantity variable="3">5.2</quantity>
+      <quantity variable="4">318.3</quantity>
+      <quantity variable="5">563</quantity>
+      <quantity variable="6">0.027</quantity>
+      <quantity variable="7">0.08</quantity>
+      <quantity calculated="true" variable="8">754.50195</quantity>
+      <quantity calculated="true" variable="9">303.28072</quantity>
+      <quantity variable="10">49.4</quantity>
+      <quantity variable="11">173</quantity>
+    </sample>
+    <sample color="963634" density="0.995967" selected="true" size="14" smass="1.000000" symbol="pentagram" tds="88.146000" wmass="0.999912">
+      <quantity variable="0">Elm Hill</quantity>
+      <quantity variable="1">8.130000000000001</quantity>
+      <quantity variable="2">24.4</quantity>
+      <quantity variable="3">11</quantity>
+      <quantity variable="4">311.4</quantity>
+      <quantity variable="5">566</quantity>
+      <quantity variable="6">0.028</quantity>
+      <quantity variable="7">0.418</quantity>
+      <quantity calculated="true" variable="8">741.07592</quantity>
+      <quantity calculated="true" variable="9">285.63932</quantity>
+      <quantity variable="10">76.7</quantity>
+      <quantity variable="11">178</quantity>
+    </sample>
+    <sample color="963634" density="0.995875" selected="true" size="14" smass="1.000000" symbol="square" tds="93.818000" wmass="0.999906">
+      <quantity variable="0">Whitsett Park</quantity>
+      <quantity variable="1">8.140000000000001</quantity>
+      <quantity variable="2">24.8</quantity>
+      <quantity variable="3">6.8</quantity>
+      <quantity variable="4">333.3</quantity>
+      <quantity variable="5">584</quantity>
+      <quantity variable="6">0.017</quantity>
+      <quantity variable="7">0.401</quantity>
+      <quantity calculated="true" variable="8">736.7156200000001</quantity>
+      <quantity calculated="true" variable="9">285.66931</quantity>
+      <quantity variable="10">86.59999999999999</quantity>
+      <quantity variable="11">180</quantity>
+    </sample>
+    <sample color="963634" density="0.995731" selected="true" size="14" smass="1.000000" symbol="blot" tds="60.579000" wmass="0.999939">
+      <quantity variable="0">Ezel Park Road</quantity>
+      <quantity variable="1">8.19</quantity>
+      <quantity variable="2">25.3</quantity>
+      <quantity variable="3">8.699999999999999</quantity>
+      <quantity variable="4">348.9</quantity>
+      <quantity variable="5">562</quantity>
+      <quantity variable="7">0.279</quantity>
+      <quantity calculated="true" variable="8">734.47988</quantity>
+      <quantity calculated="true" variable="9" />
+      <quantity variable="10">51.6</quantity>
+      <quantity variable="11">185</quantity>
+    </sample>
+    <sample color="963634" density="0.996017" selected="true" size="14" smass="1.000000" symbol="triangle" tds="21.237000" wmass="0.999979">
+      <quantity variable="0">Culbertson Road</quantity>
+      <quantity variable="1">7.92</quantity>
+      <quantity variable="2">24</quantity>
+      <quantity variable="3">7.3</quantity>
+      <quantity variable="4">294</quantity>
+      <quantity variable="5">347.2</quantity>
+      <quantity variable="6">0.027</quantity>
+      <quantity variable="7">1.01</quantity>
+      <quantity calculated="true" variable="8">751.51403</quantity>
+      <quantity calculated="true" variable="9">304.68282</quantity>
+      <quantity variable="10">12.9</quantity>
+      <quantity variable="11">152</quantity>
+    </sample>
+    <sample color="963634" density="0.995862" selected="true" size="14" smass="1.000000" symbol="yield" tds="39.664000" wmass="0.999960">
+      <quantity variable="0">Nolensville Park</quantity>
+      <quantity variable="1">8.27</quantity>
+      <quantity variable="2">24.7</quantity>
+      <quantity variable="3">12.8</quantity>
+      <quantity variable="4">324.5</quantity>
+      <quantity variable="5">367.8</quantity>
+      <quantity variable="6">0.019</quantity>
+      <quantity variable="7">0.845</quantity>
+      <quantity calculated="true" variable="8">733.26338</quantity>
+      <quantity calculated="true" variable="9">278.3496</quantity>
+      <quantity variable="10">26</quantity>
+      <quantity variable="11">116</quantity>
+    </sample>
+    <sample color="963634" density="0.995078" selected="true" size="14" smass="1.000000" symbol="diamond" tds="67.979000" wmass="0.999932">
+      <quantity variable="0">Lebanon Pike</quantity>
+      <quantity variable="1">8.109999999999999</quantity>
+      <quantity variable="2">27.9</quantity>
+      <quantity variable="3">5.5</quantity>
+      <quantity variable="4">294.6</quantity>
+      <quantity variable="5">528</quantity>
+      <quantity variable="6">0.068</quantity>
+      <quantity variable="7">0.411</quantity>
+      <quantity calculated="true" variable="8">731.7980699999999</quantity>
+      <quantity calculated="true" variable="9">278.03633</quantity>
+      <quantity variable="10">62</quantity>
+      <quantity variable="11">162</quantity>
+    </sample>
+    <sample color="963634" density="0.994639" selected="true" size="14" smass="1.000000" symbol="bullet" tds="88.439000" wmass="0.999912">
+      <quantity variable="0">Elm Hill</quantity>
+      <quantity variable="1">8.26</quantity>
+      <quantity variable="2">29.6</quantity>
+      <quantity variable="3">11.6</quantity>
+      <quantity variable="4">300.6</quantity>
+      <quantity variable="5">560</quantity>
+      <quantity variable="6">0.045</quantity>
+      <quantity variable="7">0.594</quantity>
+      <quantity calculated="true" variable="8">724.72594</quantity>
+      <quantity calculated="true" variable="9">266.44361</quantity>
+      <quantity variable="10">76.2</quantity>
+      <quantity variable="11">154</quantity>
+    </sample>
+    <sample color="963634" density="0.994746" selected="true" size="14" smass="1.000000" symbol="hourglass" tds="86.057000" wmass="0.999914">
+      <quantity variable="0">Whitsett Park</quantity>
+      <quantity variable="1">8.26</quantity>
+      <quantity variable="2">29.2</quantity>
+      <quantity variable="3">7.9</quantity>
+      <quantity variable="4">316</quantity>
+      <quantity variable="5">575</quantity>
+      <quantity variable="6">0.053</quantity>
+      <quantity variable="7">0.504</quantity>
+      <quantity calculated="true" variable="8">722.91894</quantity>
+      <quantity calculated="true" variable="9">266.08745</quantity>
+      <quantity variable="10">77.59999999999999</quantity>
+      <quantity variable="11">171</quantity>
+    </sample>
+    <sample color="963634" density="0.994822" selected="true" size="14" smass="1.000000" symbol="star" tds="0.000000" wmass="1.000000">
+      <quantity variable="0">Whitsett Park (location 2)</quantity>
+      <quantity variable="1">8.210000000000001</quantity>
+      <quantity variable="2">28.7</quantity>
+      <quantity variable="4">289.4</quantity>
+      <quantity variable="5">573</quantity>
+      <quantity calculated="true" variable="8" />
+      <quantity calculated="true" variable="9" />
+    </sample>
+    <sample color="963634" density="0.994172" selected="true" size="14" smass="1.000000" symbol="cross" tds="95.433000" wmass="0.999905">
+      <quantity variable="0">Ezell Park Road</quantity>
+      <quantity variable="1">8.33</quantity>
+      <quantity variable="2">31.3</quantity>
+      <quantity variable="3">8.4</quantity>
+      <quantity variable="4">295</quantity>
+      <quantity variable="5">593</quantity>
+      <quantity variable="6">0.02</quantity>
+      <quantity variable="7">0.413</quantity>
+      <quantity calculated="true" variable="8">715.4244199999999</quantity>
+      <quantity calculated="true" variable="9">259.67858</quantity>
+      <quantity variable="10">86.59999999999999</quantity>
+      <quantity variable="11">167</quantity>
+    </sample>
+    <sample color="963634" density="0.995093" selected="true" size="14" smass="1.000000" symbol="plus" tds="51.683000" wmass="0.999948">
+      <quantity variable="0">Culbertson Road</quantity>
+      <quantity variable="1">8.19</quantity>
+      <quantity variable="2">27.8</quantity>
+      <quantity variable="3">7.1</quantity>
+      <quantity variable="4">310</quantity>
+      <quantity variable="5">567</quantity>
+      <quantity variable="7">0.483</quantity>
+      <quantity calculated="true" variable="8">728.8487700000001</quantity>
+      <quantity calculated="true" variable="9" />
+      <quantity variable="10">44.1</quantity>
+      <quantity variable="11">199</quantity>
+    </sample>
+    <sample color="963634" density="0.994951" selected="true" size="14" smass="1.000000" symbol="box-n" tds="74.569000" wmass="0.999925">
+      <quantity variable="0">Nolensville Park</quantity>
+      <quantity variable="1">8.6</quantity>
+      <quantity variable="2">28.4</quantity>
+      <quantity variable="3">9.199999999999999</quantity>
+      <quantity variable="4">298.8</quantity>
+      <quantity variable="5">589</quantity>
+      <quantity variable="7">0.569</quantity>
+      <quantity calculated="true" variable="8">704.96231</quantity>
+      <quantity calculated="true" variable="9" />
+      <quantity variable="10">64.8</quantity>
+      <quantity variable="11">207</quantity>
+    </sample>
+    <sample color="963634" density="0.995593" selected="true" size="14" smass="1.000000" symbol="circle-n" tds="74.865000" wmass="0.999925">
+      <quantity variable="0">Lebanon Pike</quantity>
+      <quantity variable="1">7.82</quantity>
+      <quantity variable="2">25.9</quantity>
+      <quantity variable="3">6.9</quantity>
+      <quantity variable="4">319</quantity>
+      <quantity variable="5">541</quantity>
+      <quantity variable="7">0.265</quantity>
+      <quantity calculated="true" variable="8">753.9058199999999</quantity>
+      <quantity calculated="true" variable="9" />
+      <quantity variable="10">67.7</quantity>
+      <quantity variable="11">144</quantity>
+    </sample>
+    <sample color="963634" density="0.995219" selected="true" size="14" smass="1.000000" symbol="delta-n" tds="84.973000" wmass="0.999915">
+      <quantity variable="0">Elm Hill</quantity>
+      <quantity variable="1">8.18</quantity>
+      <quantity variable="2">27.4</quantity>
+      <quantity variable="3">8.300000000000001</quantity>
+      <quantity variable="4">334.1</quantity>
+      <quantity variable="5">566</quantity>
+      <quantity variable="7">0.073</quantity>
+      <quantity calculated="true" variable="8">731.14874</quantity>
+      <quantity calculated="true" variable="9" />
+      <quantity variable="10">76.59999999999999</quantity>
+      <quantity variable="11">151</quantity>
+    </sample>
+    <sample color="963634" density="0.994886" selected="true" size="14" smass="1.000000" symbol="del-n" tds="95.950000" wmass="0.999904">
+      <quantity variable="0">Whitsett Park</quantity>
+      <quantity variable="1">8.140000000000001</quantity>
+      <quantity variable="2">28.7</quantity>
+      <quantity variable="3">7.2</quantity>
+      <quantity variable="4">354.2</quantity>
+      <quantity variable="5">585</quantity>
+      <quantity variable="6">0.005</quantity>
+      <quantity variable="7">0.345</quantity>
+      <quantity calculated="true" variable="8">730.3749299999999</quantity>
+      <quantity calculated="true" variable="9">282.31823</quantity>
+      <quantity variable="10">88.40000000000001</quantity>
+      <quantity variable="11">156</quantity>
+    </sample>
+    <sample color="963634" density="0.994845" selected="true" size="14" smass="1.000000" symbol="caution-n" tds="114.109000" wmass="0.999886">
+      <quantity variable="0">Ezell Park Road</quantity>
+      <quantity variable="1">8.23</quantity>
+      <quantity variable="2">28.9</quantity>
+      <quantity variable="4">345.2</quantity>
+      <quantity variable="5">631</quantity>
+      <quantity variable="7">0.109</quantity>
+      <quantity calculated="true" variable="8" />
+      <quantity calculated="true" variable="9" />
+      <quantity variable="10">114</quantity>
+      <quantity variable="11">143</quantity>
+    </sample>
+    <sample color="963634" density="0.995295" selected="true" size="14" smass="1.000000" symbol="mobius-n" tds="45.147000" wmass="0.999955">
+      <quantity variable="0">Culbertson Road</quantity>
+      <quantity variable="1">7.94</quantity>
+      <quantity variable="2">27</quantity>
+      <quantity variable="4">362.5</quantity>
+      <quantity variable="5">548</quantity>
+      <quantity variable="6">0.019</quantity>
+      <quantity variable="7">0.428</quantity>
+      <quantity calculated="true" variable="8" />
+      <quantity calculated="true" variable="9" />
+      <quantity variable="10">44.7</quantity>
+      <quantity variable="11">231</quantity>
+    </sample>
+    <sample color="963634" density="0.994126" selected="true" size="14" smass="1.000000" symbol="pentagram-n" tds="68.376000" wmass="0.999932">
+      <quantity variable="0">Nolensville Park</quantity>
+      <quantity variable="1">8.51</quantity>
+      <quantity variable="2">31.4</quantity>
+      <quantity variable="4">308.3</quantity>
+      <quantity variable="5">565</quantity>
+      <quantity variable="6">0.016</quantity>
+      <quantity variable="7">0.26</quantity>
+      <quantity calculated="true" variable="8" />
+      <quantity calculated="true" variable="9" />
+      <quantity variable="10">68.09999999999999</quantity>
+      <quantity variable="11">161</quantity>
+    </sample>
+    <sample color="963634" density="0.995945" selected="true" size="14" smass="1.000000" symbol="box-s" tds="55.723000" wmass="0.999944">
+      <quantity variable="0">Lebanon Pike</quantity>
+      <quantity variable="1">7.64</quantity>
+      <quantity variable="2">24.4</quantity>
+      <quantity variable="3">6.5</quantity>
+      <quantity variable="4">491.5</quantity>
+      <quantity variable="5">487.3</quantity>
+      <quantity variable="6">0.017</quantity>
+      <quantity variable="7">0.706</quantity>
+      <quantity calculated="true" variable="8">766.6315500000001</quantity>
+      <quantity calculated="true" variable="9">324.937</quantity>
+      <quantity variable="10">48.5</quantity>
+      <quantity variable="11">158</quantity>
+    </sample>
+    <sample color="963634" density="0.995608" selected="true" size="14" smass="1.000000" symbol="circle-s" tds="60.490000" wmass="0.999940">
+      <quantity variable="0">Elm Hill</quantity>
+      <quantity variable="1">8.050000000000001</quantity>
+      <quantity variable="2">25.8</quantity>
+      <quantity variable="3">8.6</quantity>
+      <quantity variable="4">455.6</quantity>
+      <quantity variable="5">508</quantity>
+      <quantity variable="6">0.012</quantity>
+      <quantity variable="7">0.578</quantity>
+      <quantity calculated="true" variable="8">741.84752</quantity>
+      <quantity calculated="true" variable="9">292.84113</quantity>
+      <quantity variable="10">51.3</quantity>
+      <quantity variable="11">175</quantity>
+    </sample>
+    <sample color="963634" density="0.995658" selected="true" size="14" smass="1.000000" symbol="delta-s" tds="61.397000" wmass="0.999939">
+      <quantity variable="0">Whitsett Park</quantity>
+      <quantity variable="1">8.07</quantity>
+      <quantity variable="2">25.6</quantity>
+      <quantity variable="3">7.3</quantity>
+      <quantity variable="4">443</quantity>
+      <quantity variable="5">515</quantity>
+      <quantity variable="6">0.007</quantity>
+      <quantity variable="7">0.49</quantity>
+      <quantity calculated="true" variable="8">739.9466</quantity>
+      <quantity calculated="true" variable="9">292.91678</quantity>
+      <quantity variable="10">53.6</quantity>
+      <quantity variable="11">176</quantity>
+    </sample>
+    <sample color="963634" density="0.995607" selected="true" size="14" smass="1.000000" symbol="del-s" tds="59.016000" wmass="0.999941">
+      <quantity variable="0">Ezell Park Road</quantity>
+      <quantity variable="1">8.08</quantity>
+      <quantity variable="2">25.8</quantity>
+      <quantity variable="3">7.5</quantity>
+      <quantity variable="4">440.2</quantity>
+      <quantity variable="5">524</quantity>
+      <quantity variable="6">0.005</quantity>
+      <quantity variable="7">0.411</quantity>
+      <quantity calculated="true" variable="8">739.18673</quantity>
+      <quantity calculated="true" variable="9">292.35149</quantity>
+      <quantity variable="10">51.1</quantity>
+      <quantity variable="11">242</quantity>
+    </sample>
+    <sample color="963634" density="0.996030" selected="true" size="14" smass="1.000000" symbol="caution-s" tds="40.137000" wmass="0.999960">
+      <quantity variable="0">Culbertson Road</quantity>
+      <quantity variable="1">7.88</quantity>
+      <quantity variable="2">24</quantity>
+      <quantity variable="3">7.3</quantity>
+      <quantity variable="4">431</quantity>
+      <quantity variable="5">501</quantity>
+      <quantity variable="6">0.004</quantity>
+      <quantity variable="7">0.733</quantity>
+      <quantity calculated="true" variable="8">753.8723</quantity>
+      <quantity calculated="true" variable="9">312.70538</quantity>
+      <quantity variable="10">32.1</quantity>
+      <quantity variable="11">208</quantity>
+    </sample>
+    <sample color="963634" density="0.995967" selected="true" size="14" smass="1.000000" symbol="mobius-s" tds="88.607000" wmass="0.999911">
+      <quantity variable="0">Nolensville Park</quantity>
+      <quantity variable="1">8.23</quantity>
+      <quantity variable="2">24.4</quantity>
+      <quantity variable="3">9.699999999999999</quantity>
+      <quantity variable="4">427.6</quantity>
+      <quantity variable="5">618</quantity>
+      <quantity variable="6">0.012</quantity>
+      <quantity variable="7">0.495</quantity>
+      <quantity calculated="true" variable="8">734.36613</quantity>
+      <quantity calculated="true" variable="9">281.56952</quantity>
+      <quantity variable="10">78.40000000000001</quantity>
+      <quantity variable="11">221</quantity>
+    </sample>
+    <sample color="963634" density="0.996012" selected="true" size="14" smass="1.000000" symbol="pentagram-s" tds="83.490000" wmass="0.999917">
+      <quantity variable="0">Nolensville Park</quantity>
+      <quantity variable="1">8.220000000000001</quantity>
+      <quantity variable="2">24.2</quantity>
+      <quantity variable="3">9.9</quantity>
+      <quantity variable="4">517.5</quantity>
+      <quantity variable="5">625</quantity>
+      <quantity variable="7">0.39</quantity>
+      <quantity calculated="true" variable="8">735.4322599999999</quantity>
+      <quantity calculated="true" variable="9" />
+      <quantity variable="10">73.2</quantity>
+      <quantity variable="11">224</quantity>
+    </sample>
+    <sample color="963634" density="0.995698" selected="true" size="14" smass="1.000000" symbol="box-e" tds="47.527000" wmass="0.999952">
+      <quantity variable="0">Culbertson Road</quantity>
+      <quantity variable="1">7.98</quantity>
+      <quantity variable="2">25.4</quantity>
+      <quantity variable="3">8.699999999999999</quantity>
+      <quantity variable="4">465</quantity>
+      <quantity variable="5">551</quantity>
+      <quantity variable="6">0.019</quantity>
+      <quantity variable="7">0.908</quantity>
+      <quantity calculated="true" variable="8">746.7468299999999</quantity>
+      <quantity calculated="true" variable="9">298.66284</quantity>
+      <quantity variable="10">37.9</quantity>
+      <quantity variable="11">214</quantity>
+    </sample>
+    <sample color="963634" density="0.995255" selected="true" size="14" smass="1.000000" symbol="circle-e" tds="61.326000" wmass="0.999939">
+      <quantity variable="0">Ezell Park Road</quantity>
+      <quantity variable="1">8.039999999999999</quantity>
+      <quantity variable="2">27.2</quantity>
+      <quantity variable="3">6</quantity>
+      <quantity variable="4">445.9</quantity>
+      <quantity variable="5">429.1</quantity>
+      <quantity variable="6">0.012</quantity>
+      <quantity variable="7">0.614</quantity>
+      <quantity calculated="true" variable="8">737.73721</quantity>
+      <quantity calculated="true" variable="9">291.35794</quantity>
+      <quantity variable="10">54.7</quantity>
+      <quantity variable="11">139</quantity>
+    </sample>
+    <sample color="963634" density="0.995376" selected="true" size="14" smass="1.000000" symbol="delta-e" tds="51.722000" wmass="0.999948">
+      <quantity variable="0">Whitsett Park</quantity>
+      <quantity variable="1">8.140000000000001</quantity>
+      <quantity variable="2">26.7</quantity>
+      <quantity variable="3">7.8</quantity>
+      <quantity variable="4">437.8</quantity>
+      <quantity variable="5">418.7</quantity>
+      <quantity variable="6">0.013</quantity>
+      <quantity variable="7">0.709</quantity>
+      <quantity calculated="true" variable="8">734.33482</quantity>
+      <quantity calculated="true" variable="9">285.04028</quantity>
+      <quantity variable="10">43.2</quantity>
+      <quantity variable="11">121</quantity>
+    </sample>
+    <sample color="963634" density="0.995066" selected="true" size="14" smass="1.000000" symbol="del-e" tds="49.759000" wmass="0.999950">
+      <quantity variable="0">Elm Hill</quantity>
+      <quantity variable="1">8.279999999999999</quantity>
+      <quantity variable="2">27.9</quantity>
+      <quantity variable="3">8.300000000000001</quantity>
+      <quantity variable="4">429.7</quantity>
+      <quantity variable="5">426.3</quantity>
+      <quantity variable="6">0.02</quantity>
+      <quantity variable="7">0.639</quantity>
+      <quantity calculated="true" variable="8">724.31256</quantity>
+      <quantity calculated="true" variable="9">270.86002</quantity>
+      <quantity variable="10">40.8</quantity>
+      <quantity variable="11">141</quantity>
+    </sample>
+    <sample color="963634" density="0.995105" selected="true" size="14" smass="1.000000" symbol="caution-e" tds="69.054000" wmass="0.999931">
+      <quantity variable="0">Lebanon Pike</quantity>
+      <quantity variable="1">8.02</quantity>
+      <quantity variable="2">27.8</quantity>
+      <quantity variable="3">10.3</quantity>
+      <quantity variable="4">435.7</quantity>
+      <quantity variable="5">493.1</quantity>
+      <quantity variable="6">0.019</quantity>
+      <quantity variable="7">0.835</quantity>
+      <quantity calculated="true" variable="8">741.41164</quantity>
+      <quantity calculated="true" variable="9">291.31394</quantity>
+      <quantity variable="10">57.9</quantity>
+      <quantity variable="11">154</quantity>
+    </sample>
+    <sample color="963634" density="0.995301" selected="true" size="14" smass="1.000000" symbol="mobius-e" tds="53.922000" wmass="0.999946">
+      <quantity variable="0">Lebanon Pike</quantity>
+      <quantity variable="1">7.67</quantity>
+      <quantity variable="2">27</quantity>
+      <quantity variable="3">10.6</quantity>
+      <quantity variable="4">466.6</quantity>
+      <quantity variable="5">396.4</quantity>
+      <quantity variable="6">0.041</quantity>
+      <quantity variable="7">0.681</quantity>
+      <quantity calculated="true" variable="8">763.7920799999999</quantity>
+      <quantity calculated="true" variable="9">315.49046</quantity>
+      <quantity variable="10">42.6</quantity>
+      <quantity variable="11">121</quantity>
+    </sample>
+    <sample color="963634" density="0.995145" selected="true" size="14" smass="1.000000" symbol="pentagram-e" tds="51.198000" wmass="0.999949">
+      <quantity variable="0">Elm Hill</quantity>
+      <quantity variable="1">7.96</quantity>
+      <quantity variable="2">27.6</quantity>
+      <quantity variable="3">9.9</quantity>
+      <quantity variable="4">445.6</quantity>
+      <quantity variable="5">400.6</quantity>
+      <quantity variable="7">0.298</quantity>
+      <quantity calculated="true" variable="8">745.07327</quantity>
+      <quantity calculated="true" variable="9" />
+      <quantity variable="10">41</quantity>
+      <quantity variable="11">130</quantity>
+    </sample>
+    <sample color="963634" density="0.994933" selected="true" size="14" smass="1.000000" symbol="box-w" tds="48.043000" wmass="0.999952">
+      <quantity variable="0">Whitsett Park</quantity>
+      <quantity variable="1">7.92</quantity>
+      <quantity variable="2">28.4</quantity>
+      <quantity variable="3">7.5</quantity>
+      <quantity variable="4">431</quantity>
+      <quantity variable="5">388</quantity>
+      <quantity variable="6">0.046</quantity>
+      <quantity variable="7">0.097</quantity>
+      <quantity calculated="true" variable="8">744.3195099999999</quantity>
+      <quantity calculated="true" variable="9">287.85308</quantity>
+      <quantity variable="10">40.4</quantity>
+      <quantity variable="11">109</quantity>
+    </sample>
+    <sample color="963634" density="0.995044" selected="true" size="14" smass="1.000000" symbol="circle-w" tds="55.442000" wmass="0.999945">
+      <quantity variable="0">Ezell Park Road</quantity>
+      <quantity variable="1">7.91</quantity>
+      <quantity variable="2">28</quantity>
+      <quantity variable="3">8.300000000000001</quantity>
+      <quantity variable="4">432.7</quantity>
+      <quantity variable="5">401.9</quantity>
+      <quantity variable="6">0.049</quantity>
+      <quantity variable="7">0.093</quantity>
+      <quantity calculated="true" variable="8">746.2456</quantity>
+      <quantity calculated="true" variable="9">288.94688</quantity>
+      <quantity variable="10">47</quantity>
+      <quantity variable="11">134</quantity>
+    </sample>
+    <sample color="963634" density="0.995168" selected="true" size="14" smass="1.000000" symbol="delta-w" tds="46.397000" wmass="0.999954">
+      <quantity variable="0">Culbertson Road</quantity>
+      <quantity variable="1">7.82</quantity>
+      <quantity variable="2">27.5</quantity>
+      <quantity variable="3">7.2</quantity>
+      <quantity variable="4">444.5</quantity>
+      <quantity variable="5">487.4</quantity>
+      <quantity variable="7">0.197</quantity>
+      <quantity calculated="true" variable="8">751.5298299999999</quantity>
+      <quantity calculated="true" variable="9" />
+      <quantity variable="10">39</quantity>
+      <quantity variable="11">181</quantity>
+    </sample>
+    <sample color="963634" density="0.994889" selected="true" size="14" smass="1.000000" symbol="del-w" tds="60.597000" wmass="0.999939">
+      <quantity variable="0">Nolensville Park</quantity>
+      <quantity variable="1">8.09</quantity>
+      <quantity variable="2">28.6</quantity>
+      <quantity variable="3">8.300000000000001</quantity>
+      <quantity variable="4">433.7</quantity>
+      <quantity variable="5">487.9</quantity>
+      <quantity variable="6">0.028</quantity>
+      <quantity variable="7">0.669</quantity>
+      <quantity calculated="true" variable="8">734.46488</quantity>
+      <quantity calculated="true" variable="9">282.75649</quantity>
+      <quantity variable="10">51.6</quantity>
+      <quantity variable="11">174</quantity>
+    </sample>
+    <sample color="963634" density="0.996415" selected="true" size="14" smass="1.000000" symbol="caution-w" tds="96.682000" wmass="0.999903">
+      <quantity variable="0">Nolensville Park</quantity>
+      <quantity variable="1">7.98</quantity>
+      <quantity variable="2">22.5</quantity>
+      <quantity variable="3">10.1</quantity>
+      <quantity variable="4">608.8</quantity>
+      <quantity variable="5">636</quantity>
+      <quantity variable="7">0.982</quantity>
+      <quantity calculated="true" variable="8">752.56692</quantity>
+      <quantity calculated="true" variable="9" />
+      <quantity variable="10">85.59999999999999</quantity>
+      <quantity variable="11">132</quantity>
+    </sample>
+    <sample color="963634" density="0.996317" selected="true" size="14" smass="1.000000" symbol="mobius-w" tds="52.040000" wmass="0.999948">
+      <quantity variable="0">Culbertson Road</quantity>
+      <quantity variable="1">7.92</quantity>
+      <quantity variable="2">22.8</quantity>
+      <quantity variable="3">7.9</quantity>
+      <quantity variable="4">521.2</quantity>
+      <quantity variable="5">576</quantity>
+      <quantity variable="7">0.04</quantity>
+      <quantity calculated="true" variable="8">754.02171</quantity>
+      <quantity calculated="true" variable="9" />
+      <quantity variable="10">44.1</quantity>
+      <quantity variable="11">131</quantity>
+    </sample>
+    <sample color="963634" density="0.995708" selected="true" size="14" smass="1.000000" symbol="pentagram-w" tds="62.690000" wmass="0.999937">
+      <quantity variable="0">Ezell Park Road</quantity>
+      <quantity variable="1">8.039999999999999</quantity>
+      <quantity variable="2">25.4</quantity>
+      <quantity variable="3">7</quantity>
+      <quantity variable="4">475.3</quantity>
+      <quantity variable="5">558</quantity>
+      <quantity variable="7">1.19</quantity>
+      <quantity calculated="true" variable="8">741.7945</quantity>
+      <quantity calculated="true" variable="9" />
+      <quantity variable="10">54.5</quantity>
+    </sample>
+    <sample color="963634" density="0.995877" selected="true" size="14" smass="1.000000" symbol="box-nw" tds="61.010000" wmass="0.999939">
+      <quantity variable="0">Whitsett Park</quantity>
+      <quantity variable="1">8.1</quantity>
+      <quantity variable="2">24.7</quantity>
+      <quantity variable="3">10.8</quantity>
+      <quantity variable="4">456.6</quantity>
+      <quantity variable="5">549</quantity>
+      <quantity variable="7">1.21</quantity>
+      <quantity calculated="true" variable="8">742.2195499999999</quantity>
+      <quantity calculated="true" variable="9" />
+      <quantity variable="10">49</quantity>
+      <quantity variable="11">128</quantity>
+    </sample>
+    <sample color="963634" density="0.995806" selected="true" size="14" smass="1.000000" symbol="caution-nw" tds="64.140000" wmass="0.999936">
+      <quantity variable="0">Elm Hill</quantity>
+      <quantity variable="1">8.24</quantity>
+      <quantity variable="2">25</quantity>
+      <quantity variable="3">12.5</quantity>
+      <quantity variable="4">431.9</quantity>
+      <quantity variable="5">534</quantity>
+      <quantity variable="7">1.24</quantity>
+      <quantity calculated="true" variable="8">734.04835</quantity>
+      <quantity calculated="true" variable="9" />
+      <quantity variable="10">50.4</quantity>
+      <quantity variable="11">142</quantity>
+    </sample>
+    <sample color="963634" density="0.995906" selected="true" size="14" smass="1.000000" symbol="box-se" tds="68.810000" wmass="0.999931">
+      <quantity variable="0">Lebanon Pike</quantity>
+      <quantity variable="1">8.07</quantity>
+      <quantity variable="2">24.6</quantity>
+      <quantity variable="3">8.699999999999999</quantity>
+      <quantity variable="4">448.8</quantity>
+      <quantity variable="5">544</quantity>
+      <quantity variable="7">1.21</quantity>
+      <quantity calculated="true" variable="8">742.77492</quantity>
+      <quantity calculated="true" variable="9" />
+      <quantity variable="10">58.9</quantity>
+      <quantity variable="11">132</quantity>
+    </sample>
+  </samples>
+</GSS>

@@ -1,0 +1,28 @@
+---
+title: "East Fork Creek versus Mill Creek"
+output: html_notebook
+---
+
+```{r}
+# setwd("C:/Users/ayersj.VANDERBILT/OneDrive - Vanderbilt/Projects/HarpethRiver/MillCreek")
+library(tidyverse)
+library(EnvStats)
+Data <- read_csv("EFCvsMillCreekComplete.csv")
+Data$logP <- log10(Data$P)
+Species <- c("logP", "NO3")
+DataParams <- Data %>%
+  select(Stream, all_of(Species))
+DataLong <- DataParams %>%
+  gather(Species, key = "Species", value = "Concentration")
+
+```
+
+```{r}
+p <- ggplot(DataLong, aes(x = Species, y = Concentration, fill = Stream, position = Stream)) +
+              theme_bw() +
+              geom_boxplot(na.rm = TRUE) +
+              stat_n_text() 
+print(p)
+ggsave("NutrientComparison.png",  width = 2000, height = 2*618, units = "px", plot = p)
+```
+

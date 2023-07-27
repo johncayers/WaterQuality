@@ -1,0 +1,91 @@
+---
+title: "HRP Stream Sample Analysis 2020-2021"
+output: html_notebook
+Author: Hannah Zanibi, VU c/o 2021
+---
+
+This notebook displays script and analytical results of 12 stream samples taken during a 44-hour sampling campaign from October 2-4, 2020. The variations in stream hydrochemistry are displayed in two forms: 
+
+1. Time-series mosaic
+2. Indexed chart 
+
+The selected parameters include: log pCO2 (bar), pH, d13C, as well as calcite and dolomite saturation indices. 
+
+
+Load Libraries  
+```{r}
+library(tidyverse)
+library(lubridate)
+# I had to add the following line to allow importing Excel file
+library(readxl)
+
+```
+
+Establish data frame
+
+```{r}
+WaterData <- read_excel("202010CSSWaterData_04.xlsx")
+head(WaterData)
+```
+List variables
+```{r}
+# the "str" command tells you the data types; it does not convert to strings, which you wouldn't want to do for your numeric data anyway
+str(WaterData)
+```
+
+Select variables for figure 
+```{r}
+WaterVar <- select(WaterData, Time, pH, d13C, logpCO2, SIcalcite, SIdolomite)
+WaterVarPlot <- WaterVar %>%
+  gather('pH', 'd13C', 'logpCO2','SIcalcite', 'SIdolomite', key = "Parameter", value = "Concentration") 
+```
+
+Create time-series plots using facet_wrap
+```{r}
+p <- ggplot(WaterVarPlot, aes(x=fct_inorder(Time), y = Concentration, color = Parameter, group=Parameter)) +
+  geom_line(aes(y=Concentration, colour=Parameter))+ 
+  ggtitle("Variation in Geochemical Parameters") + 
+  geom_point() +
+  theme(plot.title = element_text(family = "Helvetica", color="black", face="bold", size=16, hjust=0)) +
+  ylab("Value") + 
+  xlab("Time") + 
+  facet_wrap(~Parameter, scale="free_y") + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  # I had to remove "family = "Helvetica" because that is a MAC-only font
+  theme(text=element_text(size=12)) + 
+   geom_hline(data = subset(WaterVarPlot, Parameter == "logpCO2"), aes(yintercept = -3.3979758),linetype = "dotted") +
+  geom_text(data = subset(WaterVarPlot, Parameter == "logpCO2"), aes(x=5,y=-3.3),colour="black", size=3, label = "Atmospheric pCO2")
+print(p)
+```
+Note that geom_hline is used to add a reference line for atmospheric pCO2 at -3.39...
+
+Create an index (relative change) of the data series over time
+```{r}
+WaterInd <-  
+  WaterVarPlot %>% 
+  group_by(Parameter) %>% 
+  # Perhaps you should use mean concentration rather than first
+  mutate(ind = Concentration / first(Concentration))
+```
+This will use the same parameters (pH, d13C, Dolomite, Calcite, and logpCO2) as before 
+
+Plot the index 
+Make sure to include fct_inorder to ensure that the time-series is in the correct order
+```{r}
+p2 <- ggplot(WaterInd, aes(x=fct_inorder(Time), y = ind*100, colour=Parameter, group=Parameter)) + 
+  geom_line() +
+  geom_point() + 
+  ggtitle("Relative Change in Geochemical Parameters") +
+  # I had to remove "family = "Helvetica" because that is a MAC-only font
+  theme(plot.title = element_text(color="black", face="bold", size=16, hjust=0)) +
+  ylab("Relative Change (in %)") + 
+  xlab("Time") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme(text=element_text(size=12))
+print(p2)
+```
+Save results and display session info
+```{r}
+sessionInfo()
+```
+

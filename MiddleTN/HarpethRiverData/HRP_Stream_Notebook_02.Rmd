@@ -1,0 +1,445 @@
+---
+title: "HRP Stream Sample Analysis 2020-2021"
+author: "Hannah Zanibi, VU Class of 2021"
+output:
+  html_document:
+    toc: yes
+    highlight: tango
+  pdf_document:
+    toc: yes
+Data File: https://vanderbilt365-my.sharepoint.com/:x:/g/personal/hannah_r_zanibi_vanderbilt_edu/Edq4CKkTZGtMtO1K-u8P27QBIIH_k9BSQfJ_5gO187Qplw?e=B6NaCI
+---
+
+This notebook displays script and analytical results of 12 stream samples taken during a 44-hour sampling campaign from October 2-4, 2020. This campaign look place along Big East Fork Rd. in the Harpeth River Watershed, TN. The variations in stream hydrochemistry are displayed in two forms: 
+
+1. Time-series mosaic
+2. Indexed chart 
+
+>The selected parameters include: nutrient concentrations, log pCO2 (bar), pH, d13C, as well as calcite and dolomite saturation indices. 
+
+```{r set-global, include=FALSE}
+# Suppress all error messages
+knitr::opts_chunk$set(error = FALSE)
+knitr::opts_chunk$set(fig.path = "Users/hanzanibi/HRP/Outputs")
+```
+
+```{r setup, echo=FALSE, include=FALSE}
+library(tidyverse, warn.conflicts = FALSE)
+library(lubridate)
+library(ggplot2)
+library(readxl)
+library(rcartocolor)
+library(knitr)
+library(cowplot)
+
+```
+Setting up Color Palette
+---
+
+The plots created in this notebook use a colorblind-friendly color palette coded below.
+```{r}
+safe_colorblind_palette <- c("#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499",
+                             "#44AA99", "#999933", "#882255", "#661100", "#6699CC", "#888888", "#0072B2", "#D55E00")
+scales::show_col(safe_colorblind_palette)
+```
+
+
+Importing Stream Data
+---
+```{r}
+WaterData <- read_excel("202010CSSWaterData_04.xlsx")
+head(WaterData)
+```
+Output Table
+---
+```{r}
+HRPOutputTable <- select(WaterData, SampleID, Date, Time, pH, logpCO2, 18:ncol(WaterData))
+knitr::kable(HRPOutputTable)
+write.csv(HRPOutputTable, file = "HRPOutputTable.csv")
+```
+
+Variable Selection
+---
+```{r}
+WaterVar <- select(WaterData, SampleID,Time, d13C, pH, Temperature, logpCO2, SIcalcite, SIdolomite)
+WaterVarPlot <- WaterVar %>%
+  gather('pH','d13C','logpCO2','SIcalcite', 'SIdolomite','Temperature', key = "Parameter", value = "Concentration") 
+WaterpHPlot <- WaterVar %>%
+  gather('pH', 'Temperature', key = "Parameter", value = "Value") 
+WaterTracePlot <- WaterData %>%
+  gather( 'Se', key = "Parameter", value = "Concentration")
+WaterPlotCombined <- WaterData %>%
+  gather ('pH', 'logpCO2', 'SIcalcite', 'SIdolomite', 'Temperature', 'd13C', 'Cl', 'DIC', 'S', 'Se', 'Ca', 'Fe', 'Mg', 'NO3', 'P', 'K', key="Parameter", value="Value")
+```
+
+Trace Metal Plot
+---
+```{r}
+Trace <- ggplot(WaterTracePlot, aes(x=fct_inorder(Time), y = Concentration, group=Parameter)) +
+  geom_rect(aes(xmin='17:50', xmax='05:58', ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.05) +
+  geom_rect(aes(xmin='18:09', xmax='05:52', ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.05) +
+  geom_line(aes(y=Concentration), color="#CC6677", size=1, na.rm =TRUE) + 
+  geom_point(shape=1,color="#CC6677", size=2, na.rm =TRUE) +
+  ylab("Concentration ug/L") + 
+  xlab("Time") + 
+  facet_wrap(~Parameter, scale="free_y") + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme(text=element_text(family="Times New Roman", size=14)) + 
+  geom_hline(yintercept=3.1, colour="black", size=1)+
+  geom_text(aes(x=5,y=3.2),colour="black", size=3, label = "U.S. EPA Selenium Criterion for Protection of Aquatic Life")
+Trace + theme(legend.position="none")
+print(Trace)
+```
+
+Temperature and pH Plots
+---
+```{r}
+pH <- ggplot(WaterpHPlot, aes(x=fct_inorder(Time), y = Value, color = Parameter, group=Parameter)) +
+  geom_rect(aes(xmin='17:50', xmax='05:58', ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.05) +
+  geom_rect(aes(xmin='18:09', xmax='05:52', ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.05) +
+  geom_line(aes(y=Value, colour=Parameter), size=1, na.rm =TRUE) + 
+  geom_point(aes(shape=Parameter), size=2, na.rm =TRUE) +
+  ylab("Value") + 
+  xlab("Time") + 
+  facet_wrap(~Parameter, scale="free_y") + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme(text=element_text(family="Times New Roman", size=14)) + scale_color_manual(values=safe_colorblind_palette) + 
+  scale_shape_manual(values=c(0, 1, 2, 5, 6))
+pH + theme(legend.position="none")
+print(pH)
+```
+```{r}
+pHTemp <- ggplot(WaterVar, aes(x=Temperature, y=pH)) +
+  geom_point() +
+  geom_smooth(method = "lm", colour="#AA4499") +
+  ylab("pH") + 
+  xlab("Temperature (Deg C)") + 
+  theme_bw() +
+  theme(axis.text.x = element_text(hjust = 1)) +
+  theme(text=element_text(family="Times New Roman", size=14)) + 
+  scale_color_manual(values=safe_colorblind_palette)
+print(pHTemp)
+```
+
+Create Geochemical Parameter Time-Series Plots
+---
+>Make sure to include fct_inorder to ensure that the time-series is in the correct order
+
+```{r}
+#Add standard deviation data for d13C
+d13CSD <- unlist(select(WaterData,d13CStDev))
+
+p <- ggplot(WaterVarPlot, aes(x=fct_inorder(Time), y = Concentration, color = Parameter, group=Parameter)) +
+  geom_rect(aes(xmin='17:50', xmax='05:58', ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.05) +
+  geom_rect(aes(xmin='18:09', xmax='05:52', ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.05) +
+  geom_line(aes(y=Concentration, colour=Parameter), size=1, na.rm =TRUE) + 
+  geom_point(aes(shape=Parameter), size=2, na.rm =TRUE) +
+  ylab("Value") + 
+  xlab("Time") + 
+  facet_wrap(~Parameter, scale="free_y") + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 2)) +
+  theme(text=element_text(family="Times New Roman", size=14)) + 
+  geom_hline(data = subset(WaterVarPlot, Parameter == "logpCO2"), aes(yintercept = -3.3979758),linetype = "dotted") +
+  geom_errorbar(data=subset(WaterVarPlot, Parameter == "d13C"), aes(ymin=Concentration-d13CSD, ymax=Concentration+d13CSD), width=.2, position=position_dodge(.9)) +
+  geom_text(data = subset(WaterVarPlot, Parameter == "logpCO2"), aes(x=5,y=-3.3),colour="black", size=3, label = "Atmospheric pCO2") + 
+  scale_color_manual(values=c("#CC6677", "#DDCC77","#88CCEE", "#117733", "#332288", "#AA4499")) + 
+  scale_shape_manual(values=c(0, 1, 2, 3, 5, 6)) 
+p + theme(legend.position="none")
+print(p)
+```
+
+>Note that geom_hline is used to add a reference line for atmospheric pCO2 at -3.39...
+
+Combined Parameter Plot
+---
+```{r}
+d13CSD <- unlist(select(WaterData,d13CStDev))
+
+All <- ggplot(WaterPlotCombined, aes(x=fct_inorder(Time), y = Value, group=Parameter)) +
+  geom_rect(aes(xmin='17:50', xmax='05:58', ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.05) +
+  geom_rect(aes(xmin='18:09', xmax='05:52', ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.05) +
+  geom_line(aes(y=Value), size=1, color="black", na.rm =TRUE) + 
+  geom_point(shape=1,size=2, na.rm =TRUE, color="black") +
+  ylab("Value") + 
+  xlab("Time") + 
+  facet_wrap(~Parameter, scale="free_y") + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 2)) +
+  theme(text=element_text(family="Times New Roman", size=14)) + 
+  geom_hline(data = subset(WaterPlotCombined, Parameter == "logpCO2"), aes(yintercept = -3.3979758),linetype = "dotted") +
+  geom_errorbar(data=subset(WaterPlotCombined, Parameter == "d13C"), aes(ymin=Value-d13CSD, ymax=Value+d13CSD), width=.2, position=position_dodge(.9)) +
+  geom_text(data = subset(WaterPlotCombined, Parameter == "logpCO2"), aes(x=5,y=-3.3),colour="black", size=3, label = "Atmospheric pCO2") 
+All + theme(legend.position="none")
+print(All)
+```
+Create Index for Selected Parameters
+---
+```{r}
+ParameterInd <- WaterVarPlot %>% 
+  group_by(Parameter) %>% 
+  mutate(ind = Concentration / mean(Concentration))
+PercentParInd <- ParameterInd %>%
+  mutate(perind= (ind-1)*100)
+```
+This will use the same parameters (pH, d13C, Dolomite, Calcite, and logpCO2) as before 
+
+Create Geochemical Parameter Index Chart 
+---
+
+```{r}
+p2 <- ggplot(ParameterInd, aes(x=fct_inorder(Time), y = (ind-1)*100, colour=Parameter, group=Parameter)) + 
+  theme_bw() +
+  geom_rect(aes(xmin='17:50', xmax='05:58', ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.006) +
+  geom_rect(aes(xmin='18:09', xmax='05:52', ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.006) +
+  geom_line(size=1) +
+  geom_point(aes(shape=Parameter), size=2) +
+  ylab("% Change from Mean") + 
+  xlab("Time") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme(text=element_text(family="Times New Roman", size=14)) + 
+  scale_color_manual(values=c("#DDCC77","#88CCEE", "#117733", "#332288", "#AA4499","#882255")) + 
+  scale_shape_manual(values=c(0, 1, 2, 3, 5, 6))
+print(p2)
+```
+Element Selection 
+---
+Elements that displayed a (at minimum) weak diurnal over time were selected, with the exception of the nutrient parameters, which were selected to analyze nutrient variation at the stream site. 
+
+The plots will be divided into anion concentrations (S, Se, Cl, DIC), cation concentrations (Ca, Fe, Mg), and nutrient concentrations (K, P, NO3).
+```{r}
+WaterNutrient <- select(WaterData, Time, K, P, NO3, Ca, Fe, Mg, S, Se, Cl, DIC, pH, logpCO2, Temperature, SIcalcite, SIdolomite, hydroxyapatite)
+WaterNutrientPlot1 <- WaterNutrient %>%
+  gather('S','Se', 'Cl', 'DIC', key = "Anion", value = "Concentration") 
+WaterNutrientPlot2 <- WaterNutrient %>%
+  gather('Ca','Fe', 'Mg', key = "Cation", value = "Concentration") 
+WaterNutrientPlot3 <- WaterNutrient %>%
+  gather('K', 'P', 'NO3', key = "Nutrient", value = "Concentration") 
+#Nutrient plot w/o K 
+WaterNutrientPlot4 <- WaterNutrient %>%
+  gather('P', 'NO3', key = "Nutrient", value = "Concentration") 
+```
+Time-Series Plots for Element Data
+---
+```{r}
+p3 <- ggplot(WaterNutrientPlot1, aes(x=fct_inorder(Time), y = Concentration, color = Anion, group=Anion)) +
+  geom_rect(aes(xmin='17:50', xmax='05:58', ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.05) +
+  geom_rect(aes(xmin='18:09', xmax='05:52', ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.05) +
+  geom_line(aes(y=Concentration, colour=Anion), size=1) + 
+  geom_point(aes(shape=Anion), size=2) +
+  ylab("Concentration (ug/L)") + 
+  xlab("Time") + 
+  facet_wrap(~Anion, scale="free_y") + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme(text=element_text(family="Times New Roman", size=14)) +
+  scale_color_manual(values=safe_colorblind_palette) +
+  scale_shape_manual(values=c(0, 1, 2, 5, 6))
+p3 + theme(legend.position="none")
+print(p3)
+```
+```{r}
+p4 <- ggplot(WaterNutrientPlot2, aes(x=fct_inorder(Time), y = Concentration, color = Cation, group=Cation)) +
+  geom_rect(aes(xmin='17:50', xmax='05:58', ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.05) +
+  geom_rect(aes(xmin='18:09', xmax='05:52', ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.05) +
+  geom_line(aes(y=Concentration, colour=Cation), size=1) + 
+  geom_point(aes(shape=Cation), size=2) +
+  ylab("Concentration (ug/L)") + 
+  xlab("Time") + 
+  facet_wrap(~Cation, scale="free_y") + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme(text=element_text(family="Times New Roman", size=14)) + 
+  scale_color_manual(values=safe_colorblind_palette) +
+  scale_shape_manual(values=c(0, 1, 2, 5, 6))
+p4 + theme(legend.position="none")
+print(p4)
+```
+```{r}
+p5 <- ggplot(WaterNutrientPlot3, aes(x=fct_inorder(Time), y = Concentration, color = Nutrient, group=Nutrient)) +
+  geom_rect(aes(xmin='17:50', xmax='05:58', ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.05) +
+  geom_rect(aes(xmin='18:09', xmax='05:52', ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.05) +
+  geom_line(aes(y=Concentration, colour=Nutrient), size=1) + 
+  geom_point(aes(shape=Nutrient), size=2) +
+  ylab("Concentration (ug/L)") + 
+  xlab("Time") + 
+  facet_wrap(~Nutrient, scale="free_y") + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme(text=element_text(family="Times New Roman", size=14)) + 
+  scale_color_manual(values=safe_colorblind_palette) +
+  scale_shape_manual(values=c(0, 1, 2, 5, 6))
+p5 + theme(legend.position="none")
+print(p5)
+```
+
+Create Index for Element Data
+---
+```{r}
+NutrientInd1 <-  
+  WaterNutrientPlot1 %>% 
+  group_by(Anion) %>% 
+  mutate(ind = Concentration / mean(Concentration))
+PercentAnInd <- NutrientInd1 %>%
+  mutate(perind= (ind-1)*100)
+NutrientInd2 <-  
+  WaterNutrientPlot2 %>% 
+  group_by(Cation) %>% 
+  mutate(ind = Concentration / mean(Concentration))
+PercentCatInd <- NutrientInd2 %>%
+  mutate(perind= (ind-1)*100)
+NutrientInd3 <-  
+  WaterNutrientPlot3 %>% 
+  group_by(Nutrient) %>% 
+  mutate(ind = Concentration / mean(Concentration))
+NutrientInd4 <-  
+  WaterNutrientPlot4 %>% 
+  group_by(Nutrient) %>% 
+  mutate(ind = Concentration / mean(Concentration))
+```
+
+Create Nutrient Index Charts
+---
+```{r}
+p6 <- ggplot(NutrientInd1, aes(x=fct_inorder(Time), y = (ind-1)*100, colour=Anion, group=Anion)) + 
+  geom_rect(aes(xmin='17:50', xmax='05:58', ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.01) +
+  geom_rect(aes(xmin='18:09', xmax='05:52', ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.01) +
+  geom_line(size=1) +
+  geom_point(aes(shape=Anion), size=2) + 
+  ylab("% Change from Mean ") + 
+  xlab("Time") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme(text=element_text(family="Times New Roman", size=14)) +
+  scale_color_manual(values=safe_colorblind_palette) +
+  scale_shape_manual(values=c(0, 1, 2, 5, 6))
+print(p6)
+```
+
+```{r}
+p7 <- ggplot(NutrientInd2, aes(x=fct_inorder(Time), y = (ind-1)*100, colour=Cation, group=Cation)) + 
+  geom_rect(aes(xmin='17:50', xmax='05:58', ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.01) +
+  geom_rect(aes(xmin='18:09', xmax='05:52', ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.01) +
+  geom_line(size=1) +
+  geom_point(aes(shape=Cation), size=2) + 
+  ylab("% Change from Mean ") + 
+  xlab("Time") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme(text=element_text(family="Times New Roman", size=14)) + 
+  scale_color_manual(values=safe_colorblind_palette) +
+  scale_shape_manual(values=c(0, 1, 2, 5, 6))
+print(p7)
+```
+>Note: Because K does not exhibit a diurnal signal (shown in plot 5), K is removed from the 'Relative Change in Nutrients' plot
+
+```{r}
+p8 <- ggplot(NutrientInd4, aes(x=fct_inorder(Time), y = (ind-1)*100, colour=Nutrient, group=Nutrient)) + 
+  geom_rect(aes(xmin='17:50', xmax='05:58', ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.01) +
+  geom_rect(aes(xmin='18:09', xmax='05:52', ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.01) +
+  geom_line(size=1) +
+  geom_point(aes(shape=Nutrient), size=2) + 
+  ylab("% Change from Mean ") + 
+  xlab("Time") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme(text=element_text(family="Times New Roman", size=14)) + 
+  scale_color_manual(values=safe_colorblind_palette) +
+  scale_shape_manual(values=c(0, 1, 2, 5, 6))
+print(p8)
+```
+
+Magnitude Change 
+---
+>The following formula is used to calculate the magnitude of diel variations as done in Nimick, 2011
+
+```{r}
+MagnChange1 <-  
+  WaterVarPlot %>% 
+  group_by(Parameter) %>% 
+  mutate(ind = ((max(Concentration)-min(Concentration))/min(Concentration)*100))
+MagnChange2 <-  
+  WaterpHPlot %>% 
+  group_by(Parameter) %>% 
+  mutate(ind = ((max(Value)-min(Value))/min(Value)*100))
+MagnChange3 <-  
+  WaterNutrientPlot1 %>% 
+  group_by(Anion) %>% 
+  mutate(ind = ((max(Concentration)-min(Concentration))/min(Concentration)*100))
+MagnChange4 <-  
+  WaterNutrientPlot2 %>% 
+  group_by(Cation) %>% 
+  mutate(ind = ((max(Concentration)-min(Concentration))/min(Concentration)*100))
+MagnChange5 <-  
+  WaterNutrientPlot3 %>% 
+  group_by(Nutrient) %>% 
+  mutate(ind = ((max(Concentration)-min(Concentration))/min(Concentration)*100))
+MagnChangeCombined <-
+  WaterPlotCombined %>%
+  group_by(Parameter)%>%
+  mutate(ind = ((max(Value)-min(Value))/min(Value)*100))
+```
+
+Selenium Calculations
+---
+```{r}
+SeleniumPlot <- WaterNutrient %>%
+  gather('Fe', 'pH', key = "Parameter", value = "Value") 
+SeleniumInd <-  
+  SeleniumPlot %>% 
+  group_by(Parameter) %>% 
+  mutate(ind = Value / mean(Value))
+p9 <- ggplot(SeleniumInd, aes(x=fct_inorder(Time), y = (ind-1)*100, colour=Parameter, group=Parameter)) + 
+  geom_rect(aes(xmin='17:50', xmax='05:58', ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.01) +
+  geom_rect(aes(xmin='18:09', xmax='05:52', ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.01) +
+  geom_line(size=1) +
+  geom_point(aes(shape=Parameter), size=2) + 
+  ylab("% Change from Mean ") + 
+  xlab("Time") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme(text=element_text(family="Times New Roman", size=14)) + 
+  scale_color_manual(values=safe_colorblind_palette) +
+  scale_shape_manual(values=c(0, 1, 2, 5, 6))
+
+print(p9)
+
+```
+
+Correlation Calculations 
+---
+```{r}
+library(corrplot)
+SeleniumPlot2 <- WaterNutrient %>%
+  select('K', 'P', 'NO3', 'Ca', 'Fe', 'Mg', 'S', 'Se', 'Cl', 'DIC', 'pH', 'logpCO2', 'Temperature', 'SIcalcite', 'SIdolomite', 'hydroxyapatite')
+SeCorr<-cor(SeleniumPlot2)
+SeCorr
+head(round(SeleniumPlot2,2))
+corrplot(SeCorr, method="circle")
+
+```
+
+```{r}
+cex.before <- par("cex")
+par(cex = 0.6)
+p10 <- corrplot(SeCorr, insig = "blank", method = "color", col=colorRampPalette(c("#D55E00","white","#0072B2"))(200),
+    addCoef.col="black", tl.col="black",
+    order = "AOE", tl.cex = 1/par("cex"),
+    cl.cex = 1/par("cex"),  addCoefasPercent = FALSE)
+dev.copy(svg, "CorrelationMatrix.svg")
+par(cex = cex.before)
+```
+> Methods obtained from http://www.sthda.com/english/wiki/visualize-correlation-matrix-using-correlogram 
+ 
+Display Session Info 
+---
+```{r}
+```
+
+
+```{r}
+sessionInfo()
+```
+

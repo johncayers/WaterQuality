@@ -1,0 +1,12 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.Rprofile
+*.html
+*.png
+*.pdf
+*.docx
+*.jpg
+*.pptx
+renv.lock

@@ -1,0 +1,144 @@
+---
+title: "Stream metabolism from DO time series"
+author: "John C. Ayers"
+output:
+  html_document:
+    df_print: paged
+---
+
+Code for estimating stream metabolism parameters using dissolved oxygen concentration time series for streams. Initially using the one station method described by Grace et al. (2015), but not using the Bayesian approach to solving the problem, just simple optimization using the R function "optim". 
+
+```{r set-global, include=FALSE}
+# Suppress all error messages
+# knitr::opts_chunk$set(error = FALSE)
+```
+
+```{r setup, include=FALSE}
+if (!require("pacman"))
+   install.packages("pacman")
+pacman::p_load(tidyverse, readxl, lubridate)
+
+```
+
+Equations for calculating DOsat (as a function of temperature, atmospheric pressure and salinity) and input parameters Fsal, alpha, beta and gamma from Grace et al. (2015), who got them from APHA (2005)
+
+```{r}
+Data <- read_excel("20220304MillCreek.xlsx", sheet = "Raw Data")
+Data <- select(Data, -Date)
+Data <- Data %>%
+  mutate(
+    Tk = tempC + 273.15,
+    Fsal = exp(-139.34411+157570.1/Tk - 66423080/Tk^2 + 12438000000/Tk^3 - 862194900000/Tk^4 - 1*sal*(0.017674 - 10.754/Tk + 2140.7/Tk^2)),
+    alpha = 0.000975-0.00001426*Tk+0.00000006436*Tk^2,
+    beta = exp(11.8571-3840.7/Tk-216961/Tk^2),
+    gam = ((1-beta/Pa)/(1-beta)*(1-alpha*Pa)/(1-alpha)),
+    DOsat = Fsal*Pa*gam,
+    D = DO - DOsat
+  )
+```
+
+Calculate dC/dt using central difference formula, where C = DO concentration Then calculate using single-station stream metabolism parameters. dt = 10 m, or 10/(24\*60) = 0.00694d
+The diff function doesn't work for central difference because it doesn't evaluate at first and last values of x, so use the forward and backward difference functions.
+
+```{r}
+Data$dt <- 0.00694
+Data$dCdt <- diff(Data$DO, lag = 2)/(2*Data$dt)
+# Remove partial days. 
+Data$Date <- as.Date(Data$Time)
+Data <- Data %>%
+filter(Date == '2022-03-04')
+# Data$dCdt[1] <- (Data$DO[2]-Data$DO[1])/Data$dt[1] # forward difference
+# m <- nrow(Data)
+# Data$dCdt[m] <- (Data$DO[m]-Data$DO[m-1])/Data$dt[m] #backward difference
+# plot(Data$Time,Data$dCdt)
+
+```
+
+The equation describing the change in DO with time is:
+
+$$\frac{\Delta[O_2]}{\Delta t} = AI_i^p - R(\Theta^{(T_i-T)}) + K_{O2}(1.0241^{(T_i-T)})D_i $$
+
+GPP = AI~i~^p^ where I is the incident light intensity. A represents the primary production per quantum of light. K~O2~ is the reaeration coefficient, [O~2~] is the dissolved oxygen concentration DO (mg O~2~ L^-1^), R is the rate of ecosystem respiration (mg O~2~ L^-1^ d^-1^), and D is the O~2~ saturation deficit/surplus (mg O~2~ L^-1^). Integrating (summing) AI^p^ over 24 hours gives GPPday.
+
+```{r}
+
+p = 1; theta = 1.072 # Constants
+SSQR = function(x) {
+  A = x[1]; ER = x[2]; KO2 = x[3]
+  return(sum(A*Data$I^p - ER*(theta^(Data$tempC-mean(Data$tempC))) + KO2*(1.0241^(Data$tempC-mean(Data$tempC))*Data$D)-Data$dCdt)^2)
+    }
+out <- optim(c(0.05,2,4),SSQR)
+x <- c(out$par[1], out$par[2], out$par[3])
+GPP = x[1]*mean(Data$I)^p
+NEP = GPP - x[2]
+
+```
+
+So A = `r format(out$par[1], digits = 3)`.
+
+| Parameter (units)         | Value    |
+|---------------------------|----------|
+| GPP (mg O~2~ L^-1^ d^-1^) | `r format(GPP, digits = 3)`  |
+| ER (mg O~2~ L^-1^ d^-1^)  | `r format(out$par[2], digits = 3)` |
+| K~O2~ (d^-1^)             | `r format(out$par[3], digits =3)`  |
+| NEP (mg O~2~ L^-1^ d^-1^) | `r format(NEP, digits = 3)`  |
+: Stream metabolism parameters
+
+Values are suspiciously close to initial guesses. When I change initial values the solved values are close to the new initial values, so not finding the global minimum. Try plotting model O2 concentration as a function of time and compare to measured.
+
+```{r}
+dCdt = function(x) {A = x[1]; ER = x[2]; KO2 = x[3]
+  dCdtCalc <- A*Data$I^p - ER*(theta^(Data$tempC-mean(Data$tempC))) + KO2*1.0241^(Data$tempC-mean(Data$tempC))*Data$D
+}
+Data$dCdtCalc <- dCdt(x)
+n = nrow(Data)-1
+Data$DOcalc <- Data$DO
+for (i in 1:n) {
+   Data$DOcalc[i+1] <- Data$DOcalc[i] + Data$dCdtCalc[i]*Data$dt[i]
+}
+plot(Data$Time,Data$DO,ylab = "DO (mg/L)", ylim = c(6,15), type = "l", lty=1)
+lines(Data$Time,Data$DOcalc, lty=2)
+legend("topleft", legend = c("DOmeas", "DOcalc"), bty = "n", lty = 1:2)
+
+```
+
+Poor agreement. Try simulated annealing using the GenSA package, which can find a global minimum for a function with many local minima (see Bloomfield (2014) pp. 178-180).
+
+```{r}
+library(GenSA)
+out = GenSA(c(0.02,1,1), SSQR, lower = c(0,0,0), upper = c(1,10,10), control = list(max.time=1))
+out[c("value", "par", "counts")]
+x <- c(out$par[1], out$par[2], out$par[3])
+
+```
+
+A = `r format(out$par[1], digits = 3)`, GPP = `r format(GPP, digits = 3)`, ER = `r format(out$par[2], digits = 3)`, K~O2~ = `r format(out$par[3], digits =3)`. Values not close to those obtained using BAYESmetab (Grace et al., 2015). Since the equation being solved is a first-order ordinary differential equation, I should try using a package designed to solve that type of equation. But solutions to ODE are usually time series that are plotted; not used to fit an ODE to an empirical time series. 
+
+```{r}
+Data$dCdtCalc <- dCdt(x)
+Data$DOcalc <- Data$DO
+for (i in 1:n) {
+   Data$DOcalc[i+1] <- Data$DOcalc[i] + Data$dCdtCalc[i]*Data$dt[i]
+}
+plot(Data$Time,Data$DO,ylab = "DO (mg/L)", ylim = c(6,15), type = "l", lty=1)
+lines(Data$Time,Data$DOcalc, lty=2)
+legend("topleft", legend = c("DOmeas", "DOcalc"), bty = "n", lty = 1:2)
+
+```
+
+Again, poor agreement. Try plotting parameters returned by BAYESmetab:
+
+```{r}
+x <- c(0.000293, 4.02, 3.8)
+Data$dCdtCalc <- dCdt(x)
+Data$DOcalc <- Data$DO
+for (i in 1:n) {
+   Data$DOcalc[i+1] <- Data$DOcalc[i] + Data$dCdtCalc[i]*Data$dt[i]
+}
+plot(Data$Time,Data$DO,ylab = "DO (mg/L)", ylim = c(6,15), type = "l", lty=1)
+lines(Data$Time,Data$DOcalc, lty=2)
+legend("topleft", legend = c("DOmeas", "DOcalc"), bty = "n", lty = 1:2)
+
+```
+
+I'm clearly doing something wrong.

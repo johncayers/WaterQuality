@@ -1,0 +1,95 @@
+---
+title: "seniorSem"
+output: pdf_document
+date: "2023-01-31"
+---
+
+```{r setup, include=TRUE}
+knitr::knit_hooks$set(inline = function(x) { knitr:::format_sci(x, 'md')})
+knitr::opts_chunk$set(echo = TRUE)
+
+
+# This section loads necessary R libraries and sources scripts that define
+# useful functions format_md.
+#
+data_dir = "_data"
+script_dir = "_scripts"
+
+# library(pacman)
+# p_load(tidyverse, jsonlite, httr, magrittr, scales)
+library(tidyverse)
+library(magrittr)
+library(scales)
+library(jsonlite)
+library(xml2)
+library(httr)
+library(lubridate)
+
+
+```
+
+```{r dataImport, include = TRUE}
+
+surface <- read_csv("surface.csv", col_names = c("date", "surf.temp", "surf.spec.con", "surf.do", "surf.ph", "surf.ox.red", "surf.turb"), skip = 1)
+surface = mutate(surface, date = as.Date(date, format = "%m/%d/%Y"))
+bottom <- read_csv("bottom.csv", col_names = c("date", "bot.temp", "bot.spec.con", "bot.do", "bot.ph", "bot.ox.red", "bot.turb"), skip = 1)
+bottom = mutate(bottom, date = as.Date(date, format = "%m/%d/%Y"))
+
+datesSurf = surface$date
+datesBot = bottom$date
+
+dates = c(datesSurf, datesBot)
+dates = unique(dates)
+
+problemDates = c()
+
+for (day in dates) {
+  surf = filter(surface, date == day)
+  bot = filter(bottom, date == day)
+  if (nrow(surf) != 1) {
+    problemDates = c(problemDates, day)
+  } else if (nrow(bot) != 1) {
+    problemDates = c(problemDates, day)
+  }
+}
+
+goodDates = dates[! dates %in% problemDates]
+surfaceGood = filter(surface, date %in% goodDates)
+#consider adding in lines here to first make sure they're sorted in order of date - I think it already is when downloaded but not sure
+bottomGood = filter(bottom, date %in% goodDates)
+bottomGood = select(bottomGood, -date)
+
+allData = bind_cols(surfaceGood, bottomGood)
+allData = mutate(allData, tempDif = surf.temp-bot.temp) %>%
+  mutate(turbDif = surf.turb-bot.turb)
+```
+
+
+```{r dataPlotting, include = TRUE}
+#startDate = as.Date("2005-02-05")
+#endDate = as.Date("2023-01-31")
+
+#startDate = as.Date(goodDates[1])
+startDate = as.Date("2/17/2005", format = "%m/%d/%Y")
+#endDate = as.Date(tail(goodDates, 1))
+endDate = as.Date("1/31/2023", format = "%m/%d/%Y")
+#endDate = as.Date("2/17/2012", format = "%m/%d/%Y")
+
+t.test(allData$bot.temp, y = allData$surf.temp)
+
+ggplot(allData, aes(x = date, y = tempDif)) +
+  geom_point() +
+  coord_cartesian(xlim = c(startDate, endDate)) +
+  labs(x = "Date", y = "Surface Temperature - Bottom Temperature (F)")
+
+t.test(allData$bot.turb, y = allData$surf.turb)
+
+ggplot(allData, aes(x = date, y = turbDif)) +
+  geom_point() +
+  coord_cartesian(xlim = c(startDate, endDate))
+
+#ggplot(allData, aes(x = date, y = surf.turb)) + 
+#  geom_point(aes(x = date, y = surf.turb, color = "blue"))+
+#  geom_point(aes(x = date, y = bot.turb, color = "red"))
+
+```

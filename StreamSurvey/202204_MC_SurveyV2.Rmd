@@ -1,0 +1,175 @@
+---
+title: "Mill Creek Stream Survey"
+output:
+  html_document:
+    df_print: paged
+---
+
+Creating maps using methods described in Brunsdon and Comer (2019).
+
+```{r set-global, include=FALSE}
+# Suppress all error messages
+knitr::opts_chunk$set(error = FALSE)
+```
+
+### Set working directory and load packages
+
+```{r}
+
+setwd("C:/Users/ayersj.VANDERBILT/OneDrive - Vanderbilt/Shared Documents/Pilot Project - Water Quality/Data/2022/Survey")
+if (!require("pacman"))
+  install.packages("pacman")
+pacman::p_load(tidyverse, readxl, sf, sp, rgdal, tmap, GISTools, RgoogleMaps, leaflet, skimr, raster, corrplot)
+
+```
+
+### Import and summarize data
+
+```{r}
+Survey <- read_excel("MC_Survey_V2.xlsx", 
+     col_types = c("date", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric"))
+Survey <- dplyr::select(Survey, -ConduSPercm, -TDSmgPerL)
+skimr::skim(Survey)
+
+```
+
+### Use tmap to create a map
+Lose most map elements when I add background using leaflet
+
+```{r}
+# define the coordinates
+coords.tmp <- cbind(Survey$Longitude, Survey$Latitude)
+# create the SpatialPointsDataFrame
+Stream.sp <- SpatialPointsDataFrame(coords.tmp, 
+                                    data = data.frame(Survey), 
+                                    proj4string = CRS("+proj=longlat"))
+# convert to sf
+Stream_sf <- st_as_sf(Stream.sp)
+# create map
+tmap_mode('view') # Launches leaflet, but then lose most customizations
+# Saving as a png without leaflet loses most elements
+# png("SurveyTmapLayout.png", width = 2000, height = 2*618, units = "px")
+tm_shape(Stream_sf) +
+  tm_dots("ODOmgPerL", shape = 19, alpha = 0.7, size = 0.1, 
+          palette = "Blues", 
+          title="Dissolved O2 (mg/L)",
+          style = "kmeans", legend.hist = T)  +
+  tm_scale_bar(width = 0.22) +
+  tm_compass(position = c(0.8, 0.07)) +
+  tm_layout(frame = F, title = "Mill Creek", 
+            title.size = 2, title.position = c(0.55, "top"),
+            legend.width = 0.5,
+            legend.hist.size = 0.5)
+# dev.off()
+# tmap_mode("plot")
+
+```
+
+### Create map using RgoogleMaps package. 
+Don't like because it uses base R syntax.
+
+```{r}
+# define Lat and Lon
+Lat <- as.vector(Survey$Latitude)
+Long <- as.vector(Survey$Longitude)
+DO <- Survey$ODOmgPerL
+# From https://r-graph-gallery.com/13-scatter-plot.html
+# Create a color palette
+mypalette <- colorNumeric( palette="YlOrBr", domain=Survey$ODOmgPerL, na.color="transparent")
+
+# get the map tiles 
+MyMap <- MapBackground(lat=Lat, lon=Long)
+PlotOnStaticMap(MyMap, Lat, Long, cex=DO/10, pch=16, col=mypalette(Survey$ODOmgPerL))
+
+```
+
+### Create leaflet map
+
+```{r}
+# See https://r-graph-gallery.com/19-map-leafletr.html
+# Create a color palette with handmade bins.
+mybins <- seq(8, 16, by=2)
+mypalette <- colorBin( palette="YlOrBr", domain=Survey$ODOmgPerL, na.color="transparent", bins=mybins)
+# Prepare the text for the tooltip:
+mytext <- paste(
+   "DO % Sat: ", Survey$ODOPercSat, "<br/>", 
+   "ORP_mV: ", Survey$ORP_mV, "<br/>", 
+   "pH: ", Survey$pH, sep="") %>%
+  lapply(htmltools::HTML)
+# Final Map
+m <- leaflet(Survey) %>% 
+  addTiles()  %>% 
+  setView( lat=36.1, lng=-86.7, zoom=12) %>%
+  addProviderTiles("Esri.WorldImagery") %>%
+  addCircleMarkers(~Longitude, ~Latitude, 
+    fillColor = ~mypalette(ODOmgPerL), fillOpacity = 0.7, color="white", radius=8, stroke=FALSE, label = mytext,
+    labelOptions = labelOptions( style = list("font-weight" = "normal", padding = "3px 8px"), textsize = "13px", direction = "auto")
+  ) %>%
+  addLegend( pal=mypalette, values=~ODOmgPerL, opacity=0.9, title = "DO (mg/L)", position = "bottomright" )
+m 
+
+```
+
+### Calculate the cumulative distance of each point along the stream from the first point.
+
+```{r}
+is.projected(Stream.sp) # Returns FALSE, so must project to UTM Zone 16S as determined from https://www.latlong.net/lat-long-utm.html
+# EPSG = 32716 https://epsg.io/32716
+# Calculate distances, first using sf
+raster::extent(Stream.sp)
+crs(Stream.sp)
+# proj=longlat: the data are in a geographic (latitude and longitude) coordinate system
+Dist <- st_distance(Stream_sf, which = ifelse(isTRUE(st_is_longlat(Stream_sf)), "Great Circle", "Euclidean"))
+#Distance from first to last point is 6170m
+# The following saves the distance of each point from the first point
+# Survey$Dist_m <- as.numeric(Dist[,1])
+#Actually want the distance from each point to the next point (from 1-2, 2-3, etc.). 
+l = nrow(Dist)-1
+ConsecDist = c(0)
+for (i in 1:l) {
+  ConsecDist[i+1] = Dist[i+1,i]
+}
+Survey$Dist_m <- ConsecDist
+Survey$CumDist <- cumsum(Survey$Dist_m)
+# See https://www.earthdatascience.org/courses/earth-analytics/spatial-data-r/reproject-vector-data/
+# UTM <- CRS("+proj=utm +zone=16 +south +datum=WGS84 +units=m +no_defs ")
+# Stream.sp_UTM <- spTransform(Stream.sp, UTM)
+# is.projected(Stream.sp_UTM)
+# crs(Stream.sp_UTM)
+# gDistance(Stream.sp_UTM)
+# as.matrix(dist(coordinates(Stream.sp_UTM)))
+#Distance from first to last point is 6161m. Close enough.
+
+```
+
+### Make distance plots
+
+```{r, error=FALSE, warning=FALSE}
+SurveyLong <- Survey %>%
+  dplyr::select(ODOPercSat:Temp_C, Altitude_m, CumDist) %>%
+  gather(ODOPercSat:Altitude_m, key = "Parameter", value = "Value")
+print(ggplot(SurveyLong, aes(x = CumDist/1000, y = Value)) +
+      geom_point(na.rm = TRUE) +
+      geom_line() +
+      facet_wrap(facets = vars(Parameter), scales = "free_y") +
+      xlab("Distance along stream (km)") +
+      theme(axis.text.x = element_text(angle = 90))
+      )
+
+```
+
+### Create correlation matrix
+
+```{r}
+Parameters <- dplyr::select(Survey, ODOPercSat:Temp_C)
+Corr <- cor(Parameters, use = "pairwise.complete.obs", method = "pearson")
+corrplot(Corr, method="circle")
+```
+
+
+### Save output file and display session info
+
+```{r}
+save.image("202204_MC_Survey.RData")
+sessionInfo()
+```

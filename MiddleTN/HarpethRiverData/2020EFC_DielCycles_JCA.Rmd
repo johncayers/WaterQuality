@@ -1,0 +1,107 @@
+---
+title: "Zanibi diel study"
+output:
+  html_document:
+    df_print: paged
+---
+
+This notebook analyzes chemical data from water samples collected from East Fork Creek in Franklin, TN by John C. Ayers and Senior Honors student Hannah Zanibi in October 2020. It shows the sample site in a map, and then creates time series plots illustrating the diel cycles. 
+
+```{r set-global, include=FALSE}
+# Suppress all error messages
+knitr::opts_chunk$set(error = FALSE)
+setwd("C:/Users/ayersj.VANDERBILT/OneDrive - Vanderbilt/Projects/HarpethRiver/Data")
+```
+
+### Useful packages
+
+```{r import packages, results='hide'}
+if (!require("pacman"))
+   install.packages("pacman")
+pacman::p_load(tidyverse, skimr, leaflet)
+```
+
+### Map of site location
+
+```{r Map}
+m <- leaflet(df) %>% addMarkers(lat = 35.951470, lng = -87.016110) %>% 
+  addProviderTiles(providers$Esri.NatGeoWorldMap)
+# See http://leaflet-extras.github.io/leaflet-providers/preview/index.html
+m
+```
+
+```{r}
+Data <- read_csv("202010CSSWaterData_04.csv", 
+    col_types = cols(Date = col_date(format = "%m/%d/%Y"), 
+        DateTime = col_datetime(format = "%m/%d/%Y %H:%M"), 
+        Time = col_time(format = "%H:%M")), locale = locale(tz = "America/Chicago"))
+Data <- rename(Data, Temp_C = `Temperature`)
+skim(Data)
+
+```
+
+```{r}
+DataFacet <- select(Data, DateTime, days, Temp_C, pH, logpCO2, NO3, P, SIcalcite)
+DataFacetLong <-  gather(DataFacet, variable, measurement, Temp_C:SIcalcite, factor_key=TRUE)
+p <- ggplot(DataFacetLong, aes(x = days, y = measurement)) +
+  theme_bw() +
+  geom_line() +
+  geom_point(shape=1,color="black", size=2, na.rm =TRUE) +
+  facet_wrap(~ variable, scales = "free", nrow = 2) +
+  geom_rect(aes(xmin=0.81, xmax=1.32, ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.05) +
+  geom_rect(aes(xmin=1.81, xmax=2.32, ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.05) +
+   geom_hline(data = subset(DataFacetLong, variable == "logpCO2"), aes(yintercept = -3.3979758),linetype = "dotted") +
+  geom_text(data = subset(DataFacetLong, variable == "logpCO2"), aes(x=1.5,y=-3.3),colour="black", size=3, label = "Atmospheric pCO2")
+print(p)
+ggsave("NutrientTimeSeries.png")
+
+```
+
+```{r}
+p <- ggplot(Data, aes(x = days, y = logpCO2)) +
+  theme_bw() +
+  geom_line() +
+  geom_point(shape=1,color="black", size=2, na.rm =TRUE) +
+  geom_rect(aes(xmin=0.81, xmax=1.32, ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.05) +
+  geom_rect(aes(xmin=1.81, xmax=2.32, ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.05) +
+   geom_hline(data = subset(DataFacetLong, variable == "logpCO2"), aes(yintercept = -3.3979758)) +
+  geom_text(data = subset(DataFacetLong, variable == "logpCO2"), aes(x=1.5,y=-3.3),colour="red", size=5, label = ("Atmospheric PCO2")) +
+  ylab("log PCO2(aq)")
+print(p)
+ggsave("logPCO2.png")
+
+```
+
+
+### Temporal trends daily timescale
+
+```{r}
+percent_change <- function(x) {
+  x <- 100*((x - mean(x, na.rm = TRUE))/mean(x, na.rm = TRUE))
+}
+PercChange <- transmute(DataFacet, days, 
+                  Temp_C = percent_change(Temp_C),
+                  pH = percent_change(pH),
+                  logpCO2 = percent_change(logpCO2),
+                  NO3 = percent_change(NO3),
+                  P = percent_change(P),
+                  SIcalcite = percent_change(SIcalcite)
+                  )
+PercChange
+```
+
+### Temporal trends daily timescale plot
+
+```{r}
+PercChangeLong <-  gather(PercChange, variable, measurement, Temp_C:SIcalcite)
+p <- ggplot(PercChangeLong, aes(x = days, y = measurement, color = variable, shape = variable)) +
+  theme_bw() +
+  geom_rect(aes(xmin=0.81, xmax=1.32, ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.05) +
+  geom_rect(aes(xmin=1.81, xmax=2.32, ymin=-Inf, ymax=Inf), fill='grey', colour=NA, alpha=0.05) +
+  geom_point() +
+  geom_line() +
+    ylab("% change")
+print(p)
+ggsave("EFC_TimeSeriesPercChange.png")
+
+```

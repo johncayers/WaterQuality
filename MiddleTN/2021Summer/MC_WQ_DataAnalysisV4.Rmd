@@ -1,0 +1,134 @@
+---
+title: "Mill Creek Water Quality Data Analysis"
+author: "John C. Ayers"
+output:
+  html_document:
+    df_print: paged
+---
+
+This notebook analyzes chemical data from water samples collected from Mill Creek in Nashville by Vanderbilt University undergraduate students Hannah Quick, Kristin Sequeira, Callie Hilgenhirst, Gabrielle Guarna, Sarah Habeck and Estelle Shaya in summer 2021. Faculty advisors included Jessica Oster, Neil Kelley, Lily Claiborne, Steve Goodbred and myself, with much assistance from postdoctoral fellow Isaiah Bolden. 
+
+```{r set-global, include=FALSE}
+# Suppress all error messages
+knitr::opts_chunk$set(error = FALSE)
+```
+
+### Useful packages
+
+```{r import packages, results='hide'}
+if (!require("pacman"))
+   install.packages("pacman")
+pacman::p_load(tidyverse, skimr, lubridate, readxl, corrplot, leaflet, htmltools, car, psych, svglite)
+```
+
+### Import data
+
+```{r}
+WQdata <- read_excel("MC_WQ_Data_Field_Measurements_Active_21.xlsx")
+
+```
+
+### Prepare data
+
+```{r}
+Sites <- c("MC1", "MC2", "MC3", "MC4", "MC5", "MC6")
+WQdata <- filter(WQdata, SiteAbb %in% Sites)
+WQdata <- rename(WQdata, SiteName = "Site Name", Dist = "Dist_from_mouth_in_m", DO = "DO_mg/L", P = "Phosphorus_mg/L", NH3 = "Ammonium_mg/L", Iron = "Fe_mg/L", NO3 = "NO3_mg/L", SO4 = "SO4_mg/L", Hardness = "CaCO3_mg/L", Precip = "Prior_day_precip_cm_USGS")
+WQdata <- select(WQdata, -"Iron")
+WQdata$Date <- as.Date(WQdata$Date)
+WQdata$WeekNum <- lubridate::week(ymd(WQdata$Date))
+skimr::skim(WQdata)
+WQdataLong <- WQdata %>%
+  gather(c("Temp_C":"Precip"), key = "Parameter", value = "Value")
+
+```
+
+### Map of site locations
+
+```{r Map}
+MData <- WQdata[row.names(unique(WQdata[,c("SiteName")])),]
+m <- leaflet(MData) %>% 
+  addMarkers(lat = ~Lat, lng = ~Lon, popup = ~htmlEscape(SiteName)) %>%
+  addTiles()
+m
+# mapview::mapshot(m, file = "MillCreekSitesMap.svg")
+```
+
+### Make distance plots
+
+```{r}
+WQdataSummary <- WQdataLong %>%
+  group_by(Parameter, Dist) %>%
+  summarize(
+    ParamMean = mean(Value, na.rm = TRUE),
+    ParamSD = sd(Value, na.rm = TRUE),
+    Lower = ParamMean - ParamSD,
+    Upper = ParamMean + ParamSD
+  )
+p <- (ggplot(WQdataSummary, aes(x = Dist/1000, y = ParamMean, ymin = Lower, ymax = Upper)) +
+      geom_pointrange(na.rm = TRUE) +
+      geom_line() +
+      theme_bw() +
+      facet_wrap(facets = vars(Parameter), scales = "free_y") +
+      xlab("Distance from river mouth (km)") +
+      theme(axis.text.x = element_text(angle = 90))
+      )
+print(p)
+ggsave("MC_SiteDistancePlot.svg")
+
+```
+
+Most parameters do not show consistent trends. Pressure increases as distance to river mouth (elevation) decreases. Hardness and conductivity/salinity decrease downstream, indicating addition of fresher water. Does this result from a decreasing proportion of groundwater? Or is it caused by addition of dilute surface water such as rainwater, which may not be able to infiltrate due to impermeable paved surfaces and does not encounter minerals to dissolve  (transported by overland flow)?
+
+### Make time plots
+
+```{r}
+WQdataSummary <- WQdataLong %>%
+  group_by(Parameter, WeekNum) %>%
+  summarize(
+    ParamMean = mean(Value, na.rm = TRUE),
+    ParamSD = sd(Value, na.rm = TRUE),
+    Lower = ParamMean - ParamSD,
+    Upper = ParamMean + ParamSD
+  )
+print(ggplot(WQdataSummary, aes(x = WeekNum, y = ParamMean, ymin = Lower, ymax = Upper)) +
+      geom_pointrange(na.rm = TRUE) +
+      geom_line() +
+      facet_wrap(facets = vars(Parameter), scales = "free_y") +
+      xlab("Week") +
+      theme(axis.text.x = element_text(angle = 90))
+      )
+
+```
+
+No consistent trends after 9 weeks of sample collection. Turbidity is higher and conductivity/salinity lower on days that it rained the day before.
+
+### Correlation Matrix
+
+```{r}
+Parameters <- select(WQdata, Temp_C:Precip)
+Corr <- cor(Parameters, use = "pairwise.complete.obs", method = "pearson")
+corrplot(Corr, method="circle")
+```
+
+Again see negative correlation between precipitation and conductivity, and positive correlation between precipitation and turbidity. Also see a positive correlation between sulfate and conductivity, suggesting the dissolution of soluble sulfur-bearing minerals significantly increases the salinity and total dissolved solids. pH is negatively correlated with precipitation because rainwater is more acidic than surface water and much more acidic than groundwater.
+
+### Scatterplot Matrix
+
+```{r}
+print(scatterplotMatrix(~ pH + DO + P + NH3 + NO3 + Precip, data = Parameters, smooth = FALSE))
+```
+
+### Site Averages
+
+```{r}
+SiteTable <- select(WQdata, SiteName, Temp_C:Precip)
+describeBy(SiteTable, group = SiteTable$SiteName)
+
+```
+
+
+```{r}
+sessionInfo()
+save.image()
+```

@@ -1,0 +1,133 @@
+---
+title: "July 2022 Time Series East Fork Creek"
+author: "John C. Ayers"
+output:
+  html_document:
+    df_print: paged
+---
+This notebook analyzes chemical data from in-situ measurements from East Fork Creek in Franklin, TN by John C. Ayers, Weizhuo Jing, Kevin Chen, Ella Daugherty, and Gabriel Perez in July 2022. It shows the sample site in a map, and then creates time series plots illustrating the diel cycles. 
+
+```{r set-global, include=FALSE}
+# Suppress all error messages
+knitr::opts_chunk$set(error = FALSE)
+```
+
+### Useful packages
+
+```{r import packages, echo=FALSE, error=FALSE}
+if (!require("pacman"))
+   install.packages("pacman")
+pacman::p_load(tidyverse, skimr, leaflet, scales, corrplot, car, timetk, svglite)
+
+```
+
+```{r}
+Data <- read_csv("EXO_Data_070622.csv", col_types = cols(Date = col_date(format = "%m/%d/%Y"), 
+    Time = col_time(format = "%H:%M:%S"), 
+    DateTime = col_datetime(format = "%m/%d/%Y %H:%M")), 
+    locale = locale(tz = "America/Chicago"))
+skim(Data)
+
+```
+
+### Grouped time series
+
+Should we use a moving average for light intensity? The dependent variables respond slower than light intensity varies due to clouds
+
+```{r}
+DataFacet <- transmute(Data, DateTime, days, Light_lux, Temp_C, pH, Depth_m, SpCond_uS_cm, ODO_PerLocSat, fDOM_RFU, Chlorophyll_RFU, TAL_PC_RFU)
+DataFacetLong <- pivot_longer(DataFacet, names_to = "variable", values_to = "measurement", Temp_C:TAL_PC_RFU)
+
+p <- ggplot(DataFacetLong, aes(x=days)) +
+  theme_linedraw() +
+  # Here try preferred method of continuous shading based on light intensity 
+  geom_segment(aes(x = days, xend = days, y = -Inf, yend = Inf, color = log(Light_lux))) +
+   scale_color_gradient(low = "grey", high = "white") +
+  ylab("Value") +
+  geom_line(aes(y = measurement), color = "blue") +
+  facet_wrap(~ variable, scales = "free", nrow = 2)
+print(p)
+ggsave("2022_07_EFC_TimeSeriesV2.svg", path = "Plots")
+
+```
+
+### Individual time series
+
+```{r}
+for (i in 3:11) {
+  j <- names(DataFacet)[i]
+  p <- ggplot(DataFacet, aes_(x = ~DateTime, y = as.name(j))) +
+    theme_linedraw() +
+    geom_segment(aes(x = DateTime, xend = DateTime, y = -Inf, yend = Inf, color = log(Light_lux)), alpha = 0.5) +
+   scale_color_gradient(low = "black", high = "white") +
+     geom_line(color = "blue")
+print(p)
+ggsave(str_c("2022_07_EFC_TimeSeriesAllSpecies_", j, '.png'), plot = p, path = "Plots")
+}
+```
+
+
+### Temporal trends daily timescale
+
+```{r}
+percent_change <- function(x) {
+  x <- 100*(x - mean(x))/mean(x)
+}
+# Get error message when using purrr:map_dbl() caused by percent_change function
+# PercChangTibble <- select(DataFacet, Light_lux:TAL_PC_RFU) %>%
+#   map_dbl(percent_change)
+PercChangeTibble <- unlist(sapply(DataFacet[,3:11], function(x) percent_change(x)))
+PercChange <- bind_cols(DataFacet$days, PercChangeTibble) %>%
+  rename(days = ...1)
+PercChangeLong <- pivot_longer(PercChange, names_to = "variable", values_to = "measurement", Light_lux:TAL_PC_RFU)
+p <- ggplot(PercChangeLong, aes(x = days, y = measurement, color = variable)) +
+  theme_bw() +
+    geom_line() +
+    ylab("% change")
+print(p)
+ggsave("2022_07_EFC_TimeSeriesPercChange.svg", path = "Plots")
+
+```
+
+### Correlation Matrix
+
+```{r}
+Parameters <- select(DataFacet, -c(DateTime, days))
+Corr <- cor(Parameters, use = "pairwise.complete.obs", method = "spearman")
+corrplot(Corr, method="circle")
+dev.copy(svg, "Plots/CorrelationMatrix.svg")
+dev.off()
+
+```
+
+### Scatterplot Matrix
+
+```{r}
+
+scatterplotMatrix(~Light_lux + Temp_C + pH + SpCond_uS_cm + ODO_PerLocSat + fDOM_RFU + TAL_PC_RFU, data = Parameters)
+dev.copy(png, "Plots/ScatterplotMatrix.png")
+dev.off()
+
+```
+
+```{r}
+
+# The following crams them all into one row; can't specify # of rows like facet_wrap
+# DataFacetLong %>%
+#   group_by(variable) %>%
+#   plot_seasonal_diagnostics(DateTime, measurement, .feature_set = c("hour"), .interactive = FALSE, nrow = 3)
+SelectData <- select(Data, DateTime, Light_lux, Temp_C, pH, Depth_m, SpCond_uS_cm, ODO_PerLocSat, fDOM_RFU, Chlorophyll_RFU, TAL_PC_RFU)
+# SeasDiag <- function(x) {
+#   plot_seasonal_diagnostics(SelectData, DateTime, as.name(names(x)), .feature_set = c("hour"), .interactive = TRUE, .title = names(x))
+# }
+# SeasDiag(Light_lux)
+plot_seasonal_diagnostics(SelectData, DateTime, Light_lux, .feature_set = c("hour"), .interactive = TRUE, .title = "Light (lux)")
+plot_seasonal_diagnostics(SelectData, DateTime, Temp_C, .feature_set = c("hour"), .interactive = TRUE, .title = "Temperature (°C)")
+plot_seasonal_diagnostics(SelectData, DateTime, pH, .feature_set = c("hour"), .interactive = TRUE, .title = "pH")
+plot_seasonal_diagnostics(SelectData, DateTime, SpCond_uS_cm, .feature_set = c("hour"), .interactive = TRUE, .title = "Specific Conductivity (μS/cm)")
+plot_seasonal_diagnostics(SelectData, DateTime, ODO_PerLocSat, .feature_set = c("hour"), .interactive = TRUE, .title = "Dissolved Oxygen (% saturation)")
+plot_seasonal_diagnostics(SelectData, DateTime, fDOM_RFU, .feature_set = c("hour"), .interactive = TRUE, .title = "Dissolved organic matter (RFU)")
+plot_seasonal_diagnostics(SelectData, DateTime, Chlorophyll_RFU, .feature_set = c("hour"), .interactive = TRUE, .title = "Chlorophyll (RFU)")
+plot_seasonal_diagnostics(SelectData, DateTime, TAL_PC_RFU, .feature_set = c("hour"), .interactive = TRUE, .title = "Total Algae (RFU)")
+
+```

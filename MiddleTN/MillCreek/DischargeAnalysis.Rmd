@@ -1,0 +1,34 @@
+---
+title: "Mill Creek Discharge Analysis"
+author: "John C. Ayers"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r set-global, include=FALSE}
+# Suppress all error messages
+knitr::opts_chunk$set(error = FALSE)
+```
+
+### Useful packages
+
+```{r import packages, results='hide'}
+if (!require("pacman"))
+   install.packages("pacman")
+
+pacman::p_load(tidyverse, leaflet, htmltools)
+```
+
+### Map of site location
+
+```{r Map}
+SiteLocations <- tribble(~Location, ~latitude, ~longitude, ~DrainageAreaSqMiles,
+"Mill Creek near Antioch",36.08154,-86.68074,64,
+"Mill Creek at Nolensville",36.00914,-86.70152,40.53,
+"Mill Creek at Thompson Lane",36.11752,-86.71905,93.4,
+"Mill Creek at Blackman Road",36.0725,-86.73333,12.2)
+m <- leaflet(SiteLocations) %>% addMarkers(lat = ~latitude, lng = ~longitude, popup = ~htmlEscape(Location)) %>% addTiles()
+m
+```
+

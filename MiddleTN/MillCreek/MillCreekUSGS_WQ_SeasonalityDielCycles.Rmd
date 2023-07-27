@@ -1,0 +1,169 @@
+---
+title: "Mill Creek Analysis of Seasonality of Water Quality Parameters"
+author: "John C. Ayers"
+output:
+  html_document:
+    df_print: paged
+---
+
+This notebook investigates the seasonality of four water quality measures that have been measured by the USGS since 2007: temperature (degrees Celsius), conductivity (a measure of salinity in microsiemens per centimeter), pH, and dissolved oxygen (mg/L). The site is USGS 03431083 MILL CREEK AT LEBANON ROAD AT NASHVILLE, TN. Information on the site is at https://waterdata.usgs.gov/nwis/inventory/?site_no=03431083&agency_cd=USGS
+Location: Latitude 36°09'50",   Longitude 86°41'57"   NAD27
+
+```{r set-global, include=FALSE}
+# Suppress all error messages
+knitr::opts_chunk$set(error = FALSE)
+```
+
+### Useful packages
+
+```{r import packages, results='hide'}
+if (!require("pacman"))
+   install.packages("pacman")
+pacman::p_load(tidyverse, lubridate, skimr, timetk, leaflet, psych, htmltools)
+```
+
+### Map of site location with default Streetmap basemap
+
+```{r Map}
+site <- tibble(lat = 36.16389, lng = -86.69917, cap = c("USGS Station 03431083 Mill Creek at Lebanon Road, https://waterdata.usgs.gov/nwis/inventory/?site_no=03431083&agency_cd=USGS"))
+m <- leaflet(site) %>% addMarkers(lat = ~lat, lng = ~lng, popup = ~htmlEscape(cap)) %>% addTiles()
+m
+```
+
+### ESRI World basemap
+
+```{r ESRI World basemap}
+m %>% addProviderTiles(providers$Esri.WorldImagery)
+```
+
+### Import and clean data
+
+```{r Read data from USGS website}
+# Unfortunately this USGS station does not have discharge data
+# The begin and end dates can be changed in the url below
+Data <- read_delim("https://nwis.waterdata.usgs.gov/usa/nwis/uv/?cb_00095=on&cb_00300=on&cb_00010=on&cb_00400=on&format=rdb&site_no=03431083&period=&begin_date=2019-12-22&end_date=2020-12-21", "\t", escape_double = FALSE, col_names = TRUE, locale = locale(tz = "America/Chicago"), trim_ws = TRUE, skip = 30)
+Data <- Data[-1,-(1:2)]
+Data <- rename(Data, Temp_C = `131093_00010`, SpC = `131094_00095`, pH = `131095_00400`, DO = `131096_00300`)
+Data <- select(Data, datetime, Temp_C, SpC, pH, DO)
+Data <- type_convert(Data)
+skim(Data)
+write_excel_csv(Data, "MillCreekWQ_Seasonality.csv", col_names = TRUE)
+```
+
+### Plots of temporal trends
+
+```{r temporal trends}
+DataLong <-  gather(Data, variable, measurement, Temp_C:DO, factor_key=TRUE)
+MinDate <- as.Date(min(Data$datetime))
+MaxDate <- as.Date(max(Data$datetime))
+print(paste("From ", MinDate, " to ", MaxDate))
+print(ggplot(DataLong, aes(x = datetime, y = measurement)) +
+  geom_line() +
+  scale_x_datetime(date_labels = "%Y-%m") +
+  facet_wrap(~ variable, scales = "free", nrow = 2))
+```
+
+### Create seasons
+
+```{r Create seasons}
+Data <- Data %>%
+  add_column(Season = NA)
+for (i in 1:nrow(Data)) {
+  if (as.Date(Data$datetime[i]) >= as.Date("2019-12-21") & as.Date(Data$datetime[i]) <= as.Date("2020-03-19")) {
+  Data$Season[i] = paste("Winter")
+  }
+  if (as.Date(Data$datetime[i]) >= as.Date("2020-03-20") & as.Date(Data$datetime[i]) <= as.Date("2020-06-19")) {
+  Data$Season[i] = paste("Spring")
+  }
+   if (as.Date(Data$datetime[i]) >= as.Date("2020-06-20") & as.Date(Data$datetime[i]) <= as.Date("2020-09-21")) {
+  Data$Season[i] = paste("Summer")
+  }
+   if (as.Date(Data$datetime[i]) >= as.Date("2020-09-22") & as.Date(Data$datetime[i]) <= as.Date("2020-12-20")) {
+  Data$Season[i] = paste("Fall")
+   }
+}
+```
+
+### Annual summary statistics
+
+```{r Annual summary statistics}
+textvars <- c("Temp_C", "SpC", "pH", "DO")
+describeBy(Data[textvars])
+```
+
+### Seasonal boxplots
+
+```{r Seasonal boxplots}
+Data$Season <- factor(Data$Season, levels = c("Spring", "Summer", "Fall", "Winter"))
+Data2 <- Data %>% drop_na() 
+SpC <- match("SpC", names(Data2))
+pH <- match("pH", names(Data2))
+DO <-  match("DO", names(Data2))
+Temp_C <-  match("Temp_C", names(Data2))
+vars <- c(SpC, pH, DO, Temp_C)
+SeasonBoxplot <- function(z) {
+  for (i in vars) {
+   print(ggplot(z, aes_(x = ~Season, y = as.name(names(z)[i]), color = ~Season)) +
+    geom_boxplot())
+          }
+}
+SeasonBoxplot(Data2)
+```
+
+The width of the boxes in the boxplots above show how much a parameter changed within a season. What is the best way to compare the magnitudes of diel cycles between seasons?
+
+### Average % change by season
+Here I compare the magnitude of diel cycles in each season by calculating the % change of each measurement from the seasonal mean. But I want to calculate the % change from the daily mean. I'm not sure how to do that.
+
+```{r Average percent change by season}
+percent_change <- function(x) {
+  x <- 100*((x - mean(x, na.rm = TRUE))/mean(x, na.rm = TRUE))
+}
+season_change <- function(y) {transmute(y, datetime, 
+                  Temp_C = percent_change(Temp_C),
+                  SpC = percent_change(SpC),
+                  pH = percent_change(pH),
+                  DO = percent_change(DO),
+                  Season
+                  )}
+Winter <- filter(Data, Season == "Winter")
+WinterChange <- season_change(Winter)
+Spring <- filter(Data, Season == "Spring")
+SpringChange <- season_change(Spring)
+Summer <- filter(Data, Season == "Summer")
+SummerChange <- season_change(Summer)
+Fall <- filter(Data, Season == "Fall")
+FallChange <- season_change(Fall)
+SeasonChange <- bind_rows(WinterChange, SpringChange, SummerChange, FallChange)
+describeBy(SeasonChange[textvars], list(SeasonChange$Season))
+# SeasonBoxplot(SeasonChange)
+```
+
+### Conductivity seasonal diagnostics
+
+```{r conductivity seasonal diagnostics}
+plot_seasonal_diagnostics(Data, datetime, SpC, .feature_set = c("hour", "month.lbl"), .interactive = TRUE)
+```
+
+### Temp seasonal diagnostics
+
+```{r Temp seasonal diagnostics}
+plot_seasonal_diagnostics(Data, datetime, Temp_C, .feature_set = c("hour", "month.lbl"), .interactive = TRUE)
+```
+
+### pH seasonal diagnostics
+
+```{r pH seasonal diagnostics}
+plot_seasonal_diagnostics(Data, datetime, pH, .feature_set = c("hour", "month.lbl"), .interactive = TRUE)
+```
+
+### DO seasonal diagnostics
+
+```{r DO seasonal diagnostics}
+plot_seasonal_diagnostics(Data, datetime, DO, .feature_set = c("hour", "month.lbl"), .interactive = TRUE)
+```
+
+```{r}
+sessionInfo()
+save.image("MillCreekSeasonality.RData")
+```

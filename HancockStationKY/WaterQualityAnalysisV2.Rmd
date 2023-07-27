@@ -1,0 +1,133 @@
+---
+title: "Water Quality Analysis"
+author: "John C. Ayers"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r set-global, include=FALSE}
+# Suppress all error messages
+knitr::opts_chunk$set(error = FALSE)
+```
+
+### Useful packages
+
+```{r import packages, results='hide'}
+if (!require("pacman"))
+   install.packages("pacman")
+
+pacman::p_load(tidyverse, treemap, RColorBrewer, EnvStats, GGally, skimr, lubridate, forcats, timetk)
+```
+
+### Read data files
+
+```{r input}
+Surface <- read_csv("CRROutputSurface.csv", 
+    col_types = cols(Date = col_date(format = "%m/%d/%y")))
+Bottom <- read_csv("CRROutputBottom.csv", 
+    col_types = cols(Date = col_date(format = "%m/%d/%y")))
+```
+
+```{r}
+Surface <- select(Surface, -"Chlorophyll a (ug/L)")
+Surface$Loc <- c("Surface")
+Bottom$Loc <- c("Bottom")
+Water <- bind_rows(Surface, Bottom)
+Water <-  dplyr::rename(Water, Temp = "Temperature(Deg C)", SpC = "Specific Conductance(uS/m)", DO = "Dissolved Oxygen(mg/L)", pH = "pH(SU)", ORP = "Oxidation-Reduction Potential(mV)", Turb = "Turbidity(NTU)")
+skim(Water)
+Water[Water<=0] <- NA
+Water2<-Water[complete.cases(Water),]
+Water2$logTurb <- log10(Water2$Turb)
+Water2 <- select(Water2, -("Turb"))
+skim(Water2)
+Water2
+```
+
+## Boxplots comparing surface and bottom
+
+```{r}
+SpC <- match("SpC", names(Water2))
+pH <- match("pH", names(Water2))
+ORP <- match("ORP", names(Water2))
+DO <-  match("DO", names(Water2))
+Temp <-  match("Temp", names(Water2))
+logTurb <-  match("logTurb", names(Water2))
+vars <- c(SpC, pH, ORP, DO, Temp, logTurb)
+for (i in vars) {
+   print(ggplot(Water, aes_(x = ~Loc, y = as.name(names(Water)[i]), color = ~Loc)) +
+    geom_boxplot() + 
+    stat_n_text())
+ }
+```
+
+### Summary Tables
+
+```{r summary tables}
+textvars <- c("SpC", "pH", "ORP", "DO", "Temp", "Turb")
+summary(Water2[textvars])
+```
+
+### Correlogram
+
+```{r Correlogram}
+textvars2 <- c("SpC", "pH", "ORP", "Temp")
+ggpairs(Water2, columns = textvars2, aes(color=Loc))
+```
+
+### Temporal trends
+
+```{r time trends}
+for (i in vars) {
+   print(ggplot(Water2, aes_(x = ~Date, y = as.name(names(Water2)[i]), color = ~Loc, shape = ~Loc)) +
+    geom_point()
+   )
+}
+```
+
+### Time series analysis
+
+```{r Time series analysis}
+# KYlakeTemp <- ts(Water2$Temp, start = c(2005), frequency = 365)
+# plot(KYlakeTemp)
+# fit <- stl(KYlakeTemp, s.window = "periodic")
+# plot(fit)
+```
+
+### Try using timetk package
+
+```{r surface seasonal diagnostics}
+# See https://www.rdocumentation.org/packages/timetk/versions/2.6.1
+# Also try  and plot_seasonal_diagnostics. 
+# timtk requires data be in long format, then group by variable
+Surface2 <- filter(Water2, Loc == "Surface")
+Surface2$logTurb <- log10(Surface2$Turb)
+Surface2 <- select(Surface2, -c("Loc", "Turb"))
+# skim(Surface2)
+```
+
+```{r}
+df_timetk <-  gather(Surface2, variable, measurement, Temp:logTurb, factor_key=TRUE)
+df_timetk %>%
+  group_by(variable) %>%
+  plot_time_series(Date, measurement, 
+                   .facet_ncol = 2, .facet_scales = "free",
+                   .interactive = TRUE)
+```
+
+
+https://business-science.github.io/timetk/articles/TK05_Plotting_Seasonality_and_Correlation.html
+For seasonality, the code below should work:
+
+```{r}
+ df_timetk %>%
+  group_by(variable) %>%
+  plot_seasonal_diagnostics(Date, measurement, .feature_set = "year")
+```
+Too messy. Just have a separate chunk for each variable. Use Water2
+dataframe and .facet_vars = "Loc"
+
+```{r}
+sessionInfo()
+save.image()
+```

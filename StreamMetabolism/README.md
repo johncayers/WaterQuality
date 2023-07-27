@@ -1,0 +1,2 @@
+# StreamMetabolism
+Code for estimating stream metabolism parameters using dissolved oxygen concentration time series for streams. Initially using the one station method described by Grace et al. (2015), but not using the Bayesian approach to solving the problem, just simple optimization using the R function "optim". Written by John C. Ayers starting on 2022-05-03.

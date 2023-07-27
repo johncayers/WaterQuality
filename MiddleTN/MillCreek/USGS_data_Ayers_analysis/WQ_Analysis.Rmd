@@ -1,0 +1,74 @@
+---
+title: "Mill Creek Water Quality Field Measurements"
+output: html_notebook
+---
+
+```{r set-global, include=FALSE}
+# Suppress all error messages
+knitr::opts_chunk$set(error = FALSE)
+```
+
+### Useful packages
+
+```{r import packages, results='hide'}
+if (!require("pacman"))
+   install.packages("pacman")
+
+pacman::p_load(tidyverse, skimr, lubridate)
+```
+
+### Import and clean data
+
+```{r}
+WQ <- read_csv("C:/Users/ayersj/OneDrive - Vanderbilt/Shared Documents/Pilot Project - Water Quality/Data_Analysis/MC_WQ_Data_Field_Measurements_Active_21.csv",
+    col_types = cols(Date = col_date(format = "%m/%d/%Y"), 
+        Time = col_skip(), DateTime = col_datetime(format = "%m/%d/%y %H:%M:%S")), 
+    locale = locale(tz = "America/Chicago"))
+skim(WQ)
+```
+### Prepare lists of sites and water quality parameters
+
+```{r}
+Sites <- c("MC1", "MC2", "MC3", "MC4", "MC5", "MC6")
+WQ <- filter(WQ, SiteAbb %in% Sites)
+FieldMeas <- select(WQ, Date, SiteAbb, Temp_C, SpC, pH, ORP, Turbidity_NTU)
+Temp_C <-  match("Temp_C", names(FieldMeas))
+SpC <- match("SpC", names(FieldMeas))
+pH <- match("pH", names(FieldMeas))
+ORP <- match("ORP", names(FieldMeas))
+Turbidity_NTU <-  match("Turbidity_NTU", names(FieldMeas))
+WQparams <- c(Temp_C, SpC, pH, ORP, Turbidity_NTU)
+```
+
+### Create plot for each WQ parameter showing how value changed over time at each site
+
+```{r}
+# Values missing for certain parameters, which is causing the corresponding date to not be added to x-axis labels.
+FieldMeas <- drop_na(FieldMeas)
+for (j in WQparams) {
+  print(ggplot(FieldMeas, aes_(x = ~Date, y = as.name(names(FieldMeas)[j]), color = ~SiteAbb)) +
+      geom_point() +
+      geom_line()
+      )
+  }
+```
+
+### Plots of WQ parameters along Mill Creek on each sampling day
+
+```{r}
+FieldMeas$WeekNum <- lubridate::week(ymd(FieldMeas$Date))
+FieldMeas$WeekNum <- factor(FieldMeas$WeekNum)
+# The following does not draw lines connecting the measurements on a given date
+for (j in WQparams) {
+  print(ggplot(FieldMeas, aes_(x = ~SiteAbb, y = as.name(names(FieldMeas)[j]), shape = ~WeekNum, color = ~WeekNum)) +
+      geom_point() +
+      geom_line() +
+        geom_
+             )
+  }
+```
+
+```{r}
+sessionInfo()
+save.image()
+```

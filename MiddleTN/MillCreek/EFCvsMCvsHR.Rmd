@@ -1,0 +1,54 @@
+---
+title: "East Fork Creek vs Mill Creek vs Harpeth River"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+
+if (!require("pacman"))
+   install.packages("pacman")
+pacman::p_load(tidyverse, skimr,leaflet, htmltools, EnvStats, psych)
+Sites <- read_csv("StreamSites.csv")
+Data <- read_csv("EFCvsMCvsHR_CompleteV3.csv")
+skim(Data)
+Data$logP <- log10(Data$P)
+Species <- c("logP", "NO3")
+DataParams <- Data %>%
+  dplyr::select(Stream, all_of(Species))
+
+DataLong <- DataParams %>%
+  gather(Species, key = "Species", value = "Concentration") %>%
+  unite("Species_Stream", Species:Stream, remove = FALSE)
+
+```
+
+```{r}
+p <- ggplot(DataLong, aes(x = Species_Stream, y = Concentration, fill = Stream)) +
+              theme_bw() +
+              geom_boxplot(na.rm = TRUE) +
+              stat_n_text() +
+              ylab("Concentration (mg/L)")
+print(p)
+ggsave("NutrientComparison.png",  width = 2000, height = 2*618, units = "px", plot = p)
+
+```
+
+### Map of site location
+
+```{r Map}
+m <- leaflet(Sites) %>% addMarkers(lat = ~Latitude, lng = ~Longitude, popup = ~htmlEscape(SiteName)) %>% 
+  addProviderTiles(providers$Esri.NatGeoWorldMap)
+# See http://leaflet-extras.github.io/leaflet-providers/preview/index.html
+m
+```
+
+
+```{r}
+library(psych)
+myvars <- c("P", "NO3")
+describeBy(Data[myvars], list(Stream = Data$Stream))
+
+```
+

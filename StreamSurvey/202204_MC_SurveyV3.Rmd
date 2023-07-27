@@ -1,0 +1,111 @@
+---
+title: "Mill Creek Stream Survey"
+output:
+  html_document:
+    df_print: paged
+---
+
+Creating maps using methods described in Brunsdon and Comer (2019).
+
+```{r set-global, include=FALSE}
+# Suppress all error messages
+knitr::opts_chunk$set(error = FALSE)
+```
+
+### Set working directory and load packages
+
+```{r}
+
+if (!require("pacman"))
+  install.packages("pacman")
+pacman::p_load(tidyverse, readxl, sf, sp, rgdal, tmap, RgoogleMaps, leaflet, skimr, raster, corrplot)
+
+```
+
+### Import and summarize data
+
+```{r}
+Survey <- read_excel("StreamSurvey/MC_Survey_V2.xlsx", 
+     col_types = c("date", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric"))
+Survey <- dplyr::select(Survey, -ConduSPercm, -TDSmgPerL)
+skimr::skim(Survey)
+
+```
+
+### Use tmap and leaflet to create a map
+
+```{r}
+# define the coordinates
+coords.tmp <- cbind(Survey$Longitude, Survey$Latitude)
+# create the SpatialPointsDataFrame
+Stream.sp <- SpatialPointsDataFrame(coords.tmp, 
+                                    data = data.frame(Survey), 
+                                    proj4string = CRS("+proj=longlat"))
+# convert to sf
+Stream_sf <- st_as_sf(Stream.sp)
+# create map
+tmap_mode('view') # Launches leaflet
+tm_shape(Stream_sf) +
+  tm_dots("ODOmgPerL", shape = 19, alpha = 0.7, size = 0.1, 
+          palette = "Blues", 
+          title="Dissolved O2 (mg/L)",
+          style = "kmeans", legend.hist = T)  +
+  tm_scale_bar(width = 0.22) +
+  tm_layout(frame = F, title = "Mill Creek", 
+            title.size = 2, title.position = c(0.55, "top"),
+            legend.width = 0.5,
+            legend.hist.size = 0.5)
+tmap_mode('plot')
+
+```
+
+### Calculate the cumulative distance of each point along the stream from the first point.
+
+```{r}
+# the data are in a geographic (latitude and longitude) coordinate system, so calculate distances using great circles https://www.r-bloggers.com/2020/02/three-ways-to-calculate-distances-in-r/
+Dist <- st_distance(Stream_sf, which = ifelse(isTRUE(st_is_longlat(Stream_sf)), "Great Circle", "Euclidean"))
+# Stright-line distance from first to last point is 6170m
+# The following saves the distance of each point from the first point
+# Survey$Dist_m <- as.numeric(Dist[,1])
+#Actually want the distance from each point to the next point (from 1-2, 2-3, etc.). 
+l = nrow(Dist)-1
+ConsecDist = c(0)
+for (i in 1:l) {
+  ConsecDist[i+1] = Dist[i+1,i]
+}
+Survey$Dist_m <- ConsecDist
+Survey$CumDist <- cumsum(Survey$Dist_m)
+
+```
+
+### Make distance plots
+
+```{r, error=FALSE, warning=FALSE}
+SurveyLong <- Survey %>%
+  dplyr::select(ODOPercSat:Temp_C, Altitude_m, CumDist) %>%
+  gather(ODOPercSat:Altitude_m, key = "Parameter", value = "Value")
+print(ggplot(SurveyLong, aes(x = CumDist/1000, y = Value)) +
+      geom_point(na.rm = TRUE) +
+      geom_line() +
+      facet_wrap(facets = vars(Parameter), scales = "free_y") +
+      xlab("Distance along stream (km)") +
+      theme(axis.text.x = element_text(angle = 90))
+      )
+
+```
+
+### Create correlation matrix
+
+```{r}
+Parameters <- dplyr::select(Survey, ODOPercSat:Temp_C)
+Corr <- cor(Parameters, use = "pairwise.complete.obs", method = "pearson")
+corrplot(Corr, method="circle")
+```
+
+
+### Save output file and display session info
+
+```{r}
+save.image("202204_MC_Survey.RData")
+sessionInfo()
+```

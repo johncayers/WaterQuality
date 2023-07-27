@@ -1,0 +1,86 @@
+---
+title: "July 2022 Time Series East Fork Creek"
+author: "John C. Ayers"
+output:
+  html_document:
+    df_print: paged
+---
+This notebook analyzes chemical data from in-situ measurements and water samples collected from East Fork Creek in Franklin, TN by John C. Ayers, Weizhuo Jing, Kevin Chen, Ella Daugherty, and Gabriel Perez in July 2022. It shows the sample site in a map, and then creates time series plots illustrating the diel cycles. 
+
+```{r set-global, include=FALSE}
+# Suppress all error messages
+knitr::opts_chunk$set(error = FALSE)
+```
+
+### Useful packages
+
+```{r import packages, echo=FALSE, error=FALSE}
+if (!require("pacman"))
+   install.packages("pacman")
+pacman::p_load(tidyverse, skimr, leaflet, scales, corrplot, car, timetk, svglite)
+
+```
+
+### Map of site location
+
+```{r Map}
+m <- leaflet(df) %>% addMarkers(lat = 35.951470, lng = -87.016110) %>% 
+  addProviderTiles(providers$Esri.NatGeoWorldMap)
+# See http://leaflet-extras.github.io/leaflet-providers/preview/index.html
+m
+# ggsave(str_c("2022_07_EFC_Map", '.png'), plot = m, path = "Plots")
+
+```
+
+```{r}
+Data <- read_csv("TimeSeriesAllSpecies.csv", col_types = cols(
+    DateTime = col_datetime(format = "%m/%d/%Y %H:%M")), 
+    locale = locale(tz = "America/Chicago"))
+skim(Data)
+
+```
+
+### Individual time series
+
+```{r}
+# Don't plot in-situ measurements as most measurements have been filtered out
+SelectData <- select(Data, DateTime, Ca:Nitrate)
+for (i in 2:21) {
+  j <- names(SelectData)[i]
+  p <- ggplot(SelectData, aes_(x = ~DateTime, y = as.name(j))) +
+    theme_linedraw() +
+    geom_line(color = "blue")
+print(p)
+ggsave(str_c("2022_07_EFC_TimeSeriesAllSpecies_", j, '.png'), plot = p, path = "Plots")
+}
+
+```
+
+### Grouped time series
+
+```{r}
+
+ggplotFunc <- function(d){
+  p <- ggplot(d, aes(x=ElapsedHours)) +
+  theme_linedraw() +
+  geom_line(aes(y = measurement), color = "blue") +
+  facet_wrap(~ variable, scales = "free", nrow = 4)
+  print(p)
+}
+
+InSitu <- Data %>%
+  select(ElapsedHours, Light_lux:TAL_PC_RFU) %>%
+  pivot_longer(names_to = "variable", values_to = "measurement", Light_lux:TAL_PC_RFU)
+ 
+p <- ggplotFunc(InSitu)
+ggsave("2022_07_EFC_TimeSeriesInSitu.svg", path = "Plots")
+
+Elements <- Data %>%
+  select(ElapsedHours, Ca:Nitrate) %>%
+  filter(ElapsedHours > 12) %>%
+  pivot_longer(names_to = "variable", values_to = "measurement", Ca:Nitrate)
+
+p <- ggplotFunc(Elements)
+ggsave("2022_07_EFC_TimeSeriesElements.svg", path = "Plots")
+
+```

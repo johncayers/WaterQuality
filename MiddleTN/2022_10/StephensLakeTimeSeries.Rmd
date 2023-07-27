@@ -1,0 +1,120 @@
+---
+title: "October 2022 Time Series Stephens Lake"
+author: "John C. Ayers"
+output:
+  html_document:
+    df_print: paged
+---
+This notebook analyzes chemical data from in-situ measurements collected from Stephens Lake at the Center for Sustainable Stewardship in Franklin, TN by John C. Ayers, Weizhuo Jing, Ming (Kevin) Chen, and Jialei (Wonder) Wei in October 2022. It shows the sample site in a map, and then creates time series plots illustrating the diel cycles. PAR measurements were made using a LI-COR LI-192 underwater quantum sensor, and all other measurements made using a YSI Exo2 sonde.
+
+```{r set-global, include=FALSE}
+# Suppress all error messages
+knitr::opts_chunk$set(error = FALSE)
+```
+
+### Useful packages
+
+```{r import packages, echo=FALSE, error=FALSE}
+if (!require("pacman"))
+   install.packages("pacman")
+pacman::p_load(tidyverse, skimr, leaflet, scales, corrplot, car, timetk)
+```
+
+### Map of site location
+
+```{r Map}
+m <- leaflet(df) %>% addMarkers(lat = 35.938203, lng = -87.016047) %>% 
+  addProviderTiles(providers$Esri.NatGeoWorldMap)
+# See http://leaflet-extras.github.io/leaflet-providers/preview/index.html
+m
+```
+
+
+```{r}
+Data <- read_csv("SL_TimeSeries_V2.csv", 
+    col_types = cols(Date = col_date(format = "%m/%d/%Y"), 
+        Time = col_time(format = "%H:%M:%S"), 
+        DateTime = col_datetime(format = "%m/%d/%Y %H:%M")), 
+    locale = locale(tz = "America/Chicago"))
+skim(Data)
+Data$days <- as.numeric(difftime(Data$DateTime, Data$DateTime[1], units = "days"))
+
+```
+
+### Grouped time series
+
+Should we use a moving average for light intensity? The dependent variables respond slower than light intensity varies due to clouds
+
+```{r}
+DataFacet <- transmute(Data, DateTime, days, PAR, Temp_C, pH, Depth_m, SpCond_uS_cm, ODO_PercSat, fDOM_RFU, Chlorophyll_RFU)
+DataFacetLong <- pivot_longer(DataFacet, names_to = "variable", values_to = "measurement", Temp_C:Chlorophyll_RFU)
+
+p <- ggplot(DataFacetLong, aes(x=days)) +
+  theme_linedraw() +
+  # Here try preferred method of continuous shading based on light intensity 
+  geom_segment(aes(x = days, xend = days, y = -Inf, yend = Inf, color = log(PAR)), alpha = 0.5) +
+  ylab("Value") +
+   scale_color_gradient(low = "black", high = "white") +
+  geom_line(aes(y = measurement), color = "blue") +
+  facet_wrap(~ variable, scales = "free", nrow = 2)
+print(p)
+ggsave("2022_10_SL_TimeSeries.png", path = "Plots")
+
+```
+
+### Individual time series
+
+```{r}
+for (i in 3:10) {
+  j <- names(DataFacet)[i]
+  p <- ggplot(DataFacet, aes_(x = ~DateTime, y = as.name(j))) +
+    theme_linedraw() +
+    geom_segment(aes(x = DateTime, xend = DateTime, y = -Inf, yend = Inf, color = log(PAR)), alpha = 0.5) +
+   scale_color_gradient(low = "black", high = "white") +
+     geom_line(color = "blue")
+print(p)
+ggsave(str_c("2022_10_SL_TimeSeries_", j, '.png'), plot = p, path = "Plots")
+}
+```
+
+### Temporal trends daily timescale
+
+```{r}
+percent_change <- function(x) {
+  x <- 100*((x - mean(x, na.rm = TRUE))/mean(x, na.rm = TRUE))
+}
+PercChangeTibble <- unlist(sapply(DataFacet[,4:10], function(x) percent_change(x)))
+PercChange <- bind_cols(DataFacet$days, PercChangeTibble) %>%
+  rename(days = ...1)
+PercChangeLong <- pivot_longer(PercChange, names_to = "variable", values_to = "measurement", Temp_C:Chlorophyll_RFU)
+p <- ggplot(PercChangeLong, aes(x = days, y = measurement, color = variable)) +
+  theme_bw() +
+    geom_line() +
+    ylab("% change")
+print(p)
+ggsave("2022_10_SL_TimeSeriesPercChange.png", path = "Plots")
+
+```
+
+### Correlation Matrix
+
+```{r}
+Parameters <- select(DataFacet, -c(DateTime, days))
+Corr <- cor(Parameters, use = "pairwise.complete.obs", method = "spearman")
+corrplot(Corr, method="circle")
+dev.copy(png, "Plots/CorrelationMatrix.png")
+dev.off()
+
+```
+
+```{r}
+SelectData <- select(Data, DateTime, PAR, Temp_C, pH, Depth_m, SpCond_uS_cm, ODO_PercSat, fDOM_RFU, Chlorophyll_RFU)
+plot_seasonal_diagnostics(SelectData, DateTime, PAR, .feature_set = c("hour"), .interactive = TRUE, .title = "PAR (PPFD)")
+plot_seasonal_diagnostics(SelectData, DateTime, Temp_C, .feature_set = c("hour"), .interactive = TRUE, .title = "Temperature (°C)")
+plot_seasonal_diagnostics(SelectData, DateTime, pH, .feature_set = c("hour"), .interactive = TRUE, .title = "pH")
+plot_seasonal_diagnostics(SelectData, DateTime, SpCond_uS_cm, .feature_set = c("hour"), .interactive = TRUE, .title = "Specific Conductivity (μS/cm)")
+plot_seasonal_diagnostics(SelectData, DateTime, ODO_PercSat, .feature_set = c("hour"), .interactive = TRUE, .title = "Dissolved Oxygen (% saturation)")
+plot_seasonal_diagnostics(SelectData, DateTime, fDOM_RFU, .feature_set = c("hour"), .interactive = TRUE, .title = "Dissolved organic matter (RFU)")
+plot_seasonal_diagnostics(SelectData, DateTime, Chlorophyll_RFU, .feature_set = c("hour"), .interactive = TRUE, .title = "Chlorophyll (RFU)")
+```
+

@@ -1,0 +1,51 @@
+---
+title: "Mill Creek Discharge Analysis"
+author: "John C. Ayers"
+output:
+  html_document:
+    df_print: paged
+---
+
+This notebook analyzes water discharge data from two USGS gauging stations in Nashville TN: Station 03430550 Mill Creek near Nolensville and Station 03431060 Mill Creek at Thompson Lane near Woodbine. 
+
+```{r set-global, include=FALSE}
+# Suppress all error messages
+knitr::opts_chunk$set(error = FALSE)
+```
+
+### Useful packages
+
+```{r import packages, results='hide'}
+if (!require("pacman"))
+   install.packages("pacman")
+pacman::p_load(tidyverse, leaflet, htmltools)
+```
+
+### Map of site location
+
+```{r Map}
+SiteLocations <- tribble(~url, ~latitude, ~longitude, ~DrainageAreaSqMiles,
+"Mill creek at Nolensville https://waterdata.usgs.gov/nwis/uv?site_no=03430550",36.00914,-86.70152,40.53,
+"Mill creek at Thompson Lane https://waterdata.usgs.gov/nwis/uv?site_no=03431060",36.11752,-86.71905,93.4)
+m <- leaflet(SiteLocations) %>% addMarkers(lat = ~latitude, lng = ~longitude, popup = ~htmlEscape(url)) %>% addTiles()
+m
+```
+
+```{r}
+# The begin and end dates can be changed in the url below
+# Discharge not always reported, so use stage height instead
+Nolensville <- read_delim("https://nwis.waterdata.usgs.gov/usa/nwis/uv/?cb_00060=on&cb_00045=on&format=rdb&site_no=03430550&period=&begin_date=2021-04-01&end_date=2021-04-27", "\t", escape_double = FALSE, col_names = TRUE, locale = locale(tz = "America/Chicago"), trim_ws = TRUE, skip = 27)
+Nolensville <- Nolensville[-1,-(1:2)]
+Nolensville <- rename(Nolensville, Discharge = `131077_00060`, Precip = `131078_00045`)
+Nolensville <- select(Nolensville, datetime, Discharge, Precip)
+Nolensville <- type_convert(Nolensville)
+# Nolensville$DateTime <- as.POSIXct(Nolensville$DateTime, tz = "America/Chicago")
+
+```
+First create plot of discharge over time for flood event. 
+
+```{r}
+print(ggplot(Nolensville, aes(x = DateTime, y = Discharge)) +
+  geom_line())
+```
+
