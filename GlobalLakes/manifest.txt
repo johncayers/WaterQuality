@@ -1,7 +1,0 @@
-Manifest file for edi.705.5-4c9184f37cff01bcdc32dc486ec36961.zip created on Fri Sep 30 01:10:49 MDT 2022
-TempProfiles_Interpolated.csv (17832225 bytes)
-TempProfiles_Raw.csv (4939091 bytes)
-SiteInformation.csv (29594 bytes)
-edi.705.5.xml (146227 bytes)
-edi.705.5.txt (52427 bytes)
-edi.705.5.report.xml (69389 bytes)
