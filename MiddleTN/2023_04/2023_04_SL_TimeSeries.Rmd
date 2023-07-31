@@ -1,11 +1,11 @@
 ---
-title: "July 2022 Time Series East Fork Creek"
+title: "April 2023 Time Series East Fork Creek"
 author: "John C. Ayers"
 output:
   html_document:
     df_print: paged
 ---
-This notebook analyzes chemical data from in-situ measurements from East Fork Creek in Franklin, TN by John C. Ayers, Weizhuo Jing, Kevin Chen, Ella Daugherty, and Gabriel Perez in July 2022. It shows the sample site in a map, and then creates time series plots illustrating the diel cycles. 
+This notebook analyzes chemical data from in-situ measurements from East Fork Creek in Franklin, TN by John C. Ayers, Ming (Kevin) Chen, and Jialei (Wonder) Wei in April 2023. It shows the sample site in a map, and then creates time series plots illustrating the diel cycles. 
 
 ```{r set-global, include=FALSE}
 # Suppress all error messages
