@@ -1,20 +1,21 @@
 ---
-title: "Instantaneous ER vs T"
+title: "Analysis of instantaneous stream metabolism parameters for East Fork Creek"
 author: "Ming Chen"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr.table.format = "html"
 if (!require("pacman"))
    install.packages("pacman")
-pacman::p_load(tidyverse, skimr, zoo, lme4, readxl, broom)
+pacman::p_load(tidyverse, skimr, zoo, lme4, readxl, broom, kableExtra)
 
 ```
 
 # import the excel file that has the instantaneous measurement
 ```{r}
-instantaneous <- read_excel("instantaneous.xlsx")
+instantaneous <- read_excel("instantaneous_updated.xlsx")
 # View(instantaneous)
 ```
 
@@ -66,11 +67,12 @@ ggsave("temp_ER.png", width = 425*3, height = 496*3, units = "px")
 print(p)
 ```
 
-```{r}
-# linear model for each unique value of YearMonth
+# linear model of lnER(1/T) for each unique value of Date
 
-linmodel <- select(instantaneous, YearMonth, inv_temp, log_ER_instant) %>%
-  group_by(YearMonth) %>%
+```{r}
+
+linmodel <- select(instantaneous, Date, inv_temp, log_ER_instant) %>%
+  group_by(Date) %>%
   nest() 
 ER_model <- function(df) {
   lm(log_ER_instant ~ inv_temp, data = df)
@@ -81,11 +83,16 @@ linmodel <- linmodel %>%
 linmodel <- linmodel %>%
   mutate(glance = map(model, broom::glance)) %>%
   unnest(glance)
-GOF <- select(linmodel, YearMonth, r.squared, p.value)
-GOF
+
+GOF <- select(linmodel, Date, r.squared, p.value)
+GOF$p.value <- format(GOF$p.value, digits = 3)
+
+GOF %>%
+  kbl() %>%
+  kable_styling() %>%
+  scroll_box(width = "100%", height = "200px")
 
 ```
-
 
 # GPP vs Temperature
 ```{r}
@@ -135,6 +142,35 @@ ggsave("PAR_GPP.png", width = 425*3, height = 496*3, units = "px")
 print(p)
 ```
 R^2 = 0.41, y = 0.0098715x + 0.0004891
+
+# linear model of GPP(PAR) for each unique value of Date
+
+```{r}
+
+linmodel <- select(instantaneous, Date, I, GPP.instant) %>%
+  group_by(Date) %>%
+  nest() 
+GPP_model <- function(df) {
+  lm(GPP.instant ~ I, data = df)
+}
+
+linmodel <- linmodel %>%
+  mutate(model = map(data, GPP_model))
+
+linmodel <- linmodel %>%
+  mutate(glance = map(model, broom::glance)) %>%
+  unnest(glance)
+
+GOF <- select(linmodel, Date, r.squared, p.value)
+GOF$p.value <- format(GOF$p.value, digits = 3)
+
+GOF %>%
+  kbl() %>%
+  kable_styling() %>%
+  scroll_box(width = "100%", height = "200px")
+
+```
+
 
 # Calculate the spearman correlation between different forms of temperature and ER    
 # create datafram with different forms of temperature and ER
