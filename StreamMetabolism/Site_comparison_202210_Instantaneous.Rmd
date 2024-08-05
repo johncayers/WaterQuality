@@ -1,0 +1,37 @@
+---
+title: "Comparison of instantaneous stream metabolism parameters for sites 1 and 2 in East Fork Creek, October 2022"
+author: "John C. Ayers"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr.table.format = "html"
+if (!require("pacman"))
+   install.packages("pacman")
+pacman::p_load(tidyverse, skimr)
+
+```
+
+# import the file that has the instantaneous measurements
+
+```{r}
+SiteCompare <- read_csv("202210_Site1_vs_Site2.csv", 
+    col_types = cols(DateTime = col_datetime(format = "%Y-%m-%d %H:%M"), 
+        Month = col_integer(), Date = col_date(format = "%m/%d/%Y"),
+        Season = col_factor(levels = c("Fall", "Spring", 
+                                     "Summer", "Winter"))),
+      locale = locale(tz = "US/Central"))
+View(SiteCompare)
+```
+
+# Spread table with sites 1 and 2 in separate columns with same DateTime
+
+```{r}
+SiteCompareGPP <- SiteCompare %>%
+  select(Site, DateTime, GPP.instant) %>%
+  pivot_wider(names_from = Site, values_from = GPP.instant)
+  # spread(Site, GPP.instant)
+View(SiteCompareGPP)
+```
+
