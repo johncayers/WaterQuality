@@ -1,5 +1,6 @@
 ---
-title: "Comparison of instantaneous stream metabolism parameters for sites 1 and 2 in East Fork Creek, October 2022"
+title: "Comparison of instantaneous stream metabolism parameters for sites 1 and
+2 in East Fork Creek, October 2022"
 author: "John C. Ayers"
 output: html_document
 ---
@@ -9,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 knitr.table.format = "html"
 if (!require("pacman"))
    install.packages("pacman")
-pacman::p_load(tidyverse, skimr)
+pacman::p_load(tidyverse, skimr, broom)
 
 ```
 
@@ -17,21 +18,111 @@ pacman::p_load(tidyverse, skimr)
 
 ```{r}
 SiteCompare <- read_csv("202210_Site1_vs_Site2.csv", 
-    col_types = cols(DateTime = col_datetime(format = "%Y-%m-%d %H:%M"), 
-        Month = col_integer(), Date = col_date(format = "%m/%d/%Y"),
-        Season = col_factor(levels = c("Fall", "Spring", 
-                                     "Summer", "Winter"))),
-      locale = locale(tz = "US/Central"))
-View(SiteCompare)
+    col_types = cols(DateTime = col_datetime(format = "%m/%d/%Y %H:%M"), 
+        Month = col_integer(), Date = col_date(format = "%m/%d/%Y")),
+    locale = locale(tz = "US/Central"))
+skim(SiteCompare)
 ```
 
-# Spread table with sites 1 and 2 in separate columns with same DateTime
+
+```{r}
+# Parameters = c(GPP.instant, ER.instant, K.instant)
+SiteCompare %>%
+  ggplot(aes(x=DateTime, y=GPP.instant, color = Site)) +
+  geom_line()
+SiteCompare %>%
+  ggplot(aes(x=DateTime, y=ER.instant, color = Site)) +
+  geom_line()
+SiteCompare %>%
+  ggplot(aes(x=DateTime, y=K.instant, color = Site)) +
+  geom_line()
+  
+```
+
+```{r}
+SiteCompare %>%
+  ggplot(aes(x=Site, y=log10(GPP.instant), color=Site)) +
+  geom_boxplot()
+SiteCompare %>%
+  ggplot(aes(x=Site, y=log10(ER.instant), color=Site)) +
+  geom_boxplot()
+SiteCompare %>%
+  ggplot(aes(x=Site, y=log10(K.instant), color=Site)) +
+  geom_boxplot()
+```
+
+```{r}
+# The following doesn't list groups side-by-side
+# library(psych)
+# describeBy(SiteCompare[Parameters], list(Site=SiteCompare$Site))
+SiteCompareLong <- SiteCompare %>%
+  select(Site, DateTime, GPP.instant, ER.instant, K.instant) %>%
+  pivot_longer(cols = ends_with("instant"), names_to = "Parameter", values_to = 'values')
+
+SiteCompareSummary <- SiteCompareLong %>%
+  group_by(Parameter, Site) %>%
+  summarise(
+    mean = format(mean(values, na.rm = TRUE), digits = 2),
+    sd = format(sd(values, na.rm = TRUE), digits = 2)
+  )
+SiteCompareSummary
+
+```
+
+# Paired nonparametric Wilcoxon signed rank test
 
 ```{r}
 SiteCompareGPP <- SiteCompare %>%
   select(Site, DateTime, GPP.instant) %>%
   pivot_wider(names_from = Site, values_from = GPP.instant)
-  # spread(Site, GPP.instant)
-View(SiteCompareGPP)
+wilcox.test(SiteCompareGPP$Site1, SiteCompareGPP$Site2, paired = TRUE)
+cor.test(SiteCompareGPP$Site1, SiteCompareGPP$Site2, method = "spearman")
+
+SiteCompareER <- SiteCompare %>%
+  select(Site, DateTime, ER.instant) %>%
+  pivot_wider(names_from = Site, values_from = ER.instant)
+wilcox.test(SiteCompareER$Site1, SiteCompareER$Site2, paired = TRUE)
+cor.test(SiteCompareER$Site1, SiteCompareER$Site2, method = "spearman")
+
+SiteCompareK <- SiteCompare %>%
+  select(Site, DateTime, K.instant) %>%
+  pivot_wider(names_from = Site, values_from = K.instant)
+wilcox.test(SiteCompareK$Site1, SiteCompareK$Site2, paired = TRUE)
+cor.test(SiteCompareK$Site1, SiteCompareK$Site2, method = "spearman")
+
+```
+```{r}
+#Try filtering out October 25 data, which were anomalous. Doesn't make a difference.
+
+SiteCompareGPP <- SiteCompare %>%
+  filter(Date != "2022-10-25") %>%
+  select(Site, DateTime, GPP.instant) %>%
+  pivot_wider(names_from = Site, values_from = GPP.instant)
+wilcox.test(SiteCompareGPP$Site1, SiteCompareGPP$Site2, paired = TRUE)
+
+SiteCompareER <- SiteCompare %>%
+  filter(Date != "2022-10-25") %>%
+  select(Site, DateTime, ER.instant) %>%
+  pivot_wider(names_from = Site, values_from = ER.instant)
+wilcox.test(SiteCompareER$Site1, SiteCompareER$Site2, paired = TRUE)
+
+SiteCompareK <- SiteCompare %>%
+  filter(Date != "2022-10-25") %>%
+  select(Site, DateTime, K.instant) %>%
+  pivot_wider(names_from = Site, values_from = K.instant)
+wilcox.test(SiteCompareK$Site1, SiteCompareK$Site2, paired = TRUE)
+
+```
+
+
+
+```{r}
+
+# SiteCompare %>%
+#   group_by(Site) %>% 
+#   do(tidy(shapiro.test(.$ER.instant))) 
+# 
+# SiteCompare %>%
+#   do(tidy(wilcox.test(.$ER.instant)))
 ```
 
