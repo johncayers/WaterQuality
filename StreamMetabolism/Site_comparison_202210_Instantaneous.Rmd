@@ -75,18 +75,24 @@ SiteCompareSummary
 SiteCompareGPP <- SiteCompare %>%
   select(Site, DateTime, GPP.instant) %>%
   pivot_wider(names_from = Site, values_from = GPP.instant)
+shapiro.test(SiteCompareGPP$Site1)
+shapiro.test(SiteCompareGPP$Site2)
 wilcox.test(SiteCompareGPP$Site1, SiteCompareGPP$Site2, paired = TRUE)
 cor.test(SiteCompareGPP$Site1, SiteCompareGPP$Site2, method = "spearman")
 
 SiteCompareER <- SiteCompare %>%
   select(Site, DateTime, ER.instant) %>%
   pivot_wider(names_from = Site, values_from = ER.instant)
+shapiro.test(SiteCompareER$Site1)
+shapiro.test(SiteCompareER$Site2)
 wilcox.test(SiteCompareER$Site1, SiteCompareER$Site2, paired = TRUE)
 cor.test(SiteCompareER$Site1, SiteCompareER$Site2, method = "spearman")
 
 SiteCompareK <- SiteCompare %>%
   select(Site, DateTime, K.instant) %>%
   pivot_wider(names_from = Site, values_from = K.instant)
+shapiro.test(SiteCompareK$Site1)
+shapiro.test(SiteCompareK$Site2)
 wilcox.test(SiteCompareK$Site1, SiteCompareK$Site2, paired = TRUE)
 cor.test(SiteCompareK$Site1, SiteCompareK$Site2, method = "spearman")
 
