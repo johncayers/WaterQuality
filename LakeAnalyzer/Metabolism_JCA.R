@@ -184,3 +184,73 @@ res = bayes.res
 cat('metab.bayesian GPP:', mean(res[res[,3]>0,3]), ' R:', mean(res[res[,4]<0,4]), 'NEP:', mean(res[res[,3]>0,3]) + mean(res[res[,4]<0,4]), '\n')
 res = book.res
 cat('metab.bookkeep GPP:', mean(res[res[,3]>0,3]), ' R:', mean(res[res[,4]<0,4]), 'NEP:', mean(res[res[,3]>0,3]) + mean(res[res[,4]<0,4]), '\n')
+
+# Try reporting instantaneous values for OLS model
+calc.freq <- function (datetime) 
+{
+  freq <- round(Mode(1/diff(date2doy(datetime))))
+}
+Mode <- function (x) 
+{
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+date2doy <- function (x) 
+{
+  stopifnot(any(grepl("^POSIX", class(x[1]))))
+  day <- as.numeric(format(x, "%j"))
+  pat <- quote("([0-9]{2}:){2}[0-9]{2}")
+  midnight <- as.POSIXct(gsub(pat, "00:00:00", x), tz = "GMT")
+  frac <- as.numeric(difftime(x, midnight, units = "days"))
+  day + frac
+}
+OLS_inst <- function (datetime, do.obs, do.sat, k.gas, z.mix, irr, wtr, ...) 
+{
+  # complete.inputs(do.obs = do.obs, do.sat = do.sat, k.gas = k.gas, 
+  #                 z.mix = z.mix, irr = irr, wtr = wtr, error = TRUE)
+  nobs <- length(do.obs)
+  mo.args <- list(...)
+  if (any(z.mix <= 0)) {
+    stop("z.mix must be greater than zero.")
+  }
+  if (any(wtr <= 0)) {
+    stop("all wtr must be positive.")
+  }
+  # if ("datetime" %in% names(mo.args)) {
+  #   datetime <- mo.args$datetime
+  #   freq <- calc.freq(datetime)
+  #   if (nobs != freq) {
+  #     bad.date <- format.Date(datetime[1], format = "%Y-%m-%d")
+  #     warning("number of observations on ", bad.date, " (", 
+  #             nobs, ") ", "does not equal estimated sampling frequency", 
+  #             " (", freq, ")", sep = "")
+  #   }
+  # }
+  # else {
+  #   warning("datetime not found, inferring sampling frequency from # of observations")
+  #   freq <- nobs
+  # }
+  freq <- calc.freq(datetime)
+  do.diff <- diff(do.obs)
+  inst_flux <- (k.gas/freq) * (do.sat - do.obs)
+  flux <- inst_flux[-nobs]
+  noflux.do.diff <- do.diff - flux/z.mix[-nobs]
+  lntemp <- log(wtr)
+  mod <- lm(noflux.do.diff ~ irr[-nobs] + lntemp[-nobs] - 1)
+  rho <- mod[[1]][2]
+  iota <- mod[[1]][1]
+  mod.matrix <- model.matrix(mod)
+  gpp <- iota * mod.matrix[, 1]
+  resp <- rho * mod.matrix[, 2]
+  nep <- gpp + resp
+  datetime <- datetime[-1]
+  inst.results <- list(mod = mod, metab = data.frame(datetime = datetime, GPP = gpp, 
+                                                R = resp, NEP = nep))
+  return(inst.results)
+}
+#OLS
+# ols.inst.res = OLS_inst(do.obs = 'ts.data$doobs_0.5', do.sat = 'ts.data$do.sat', k.gas = 'ts.data$k.gas', 
+#                             z.mix = 'ts.data$z.mix', irr = 'ts.data$par', wtr = 'ts.data$wtr_0.5')
+ols.inst.res = OLS_inst(datetime = ts.data$datetime, do.obs = ts.data$doobs_0.5, do.sat = ts.data$do.sat, k.gas = ts.data$k.gas, 
+                            z.mix = ts.data$z.mix, irr = ts.data$par, wtr = ts.data$wtr_0.5)
+write.csv(ols.inst.res$metab, 'LakeAnalyzer/sp.metab.ols.inst.csv', row.names=FALSE)
