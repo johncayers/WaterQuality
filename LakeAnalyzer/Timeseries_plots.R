@@ -67,7 +67,8 @@ gapper = 0.15 # space between panels
 
 default_par = par(no.readonly = TRUE)
 #Create plot and save in temporary directory
-png(file.path(tempdir(), 'fig_1.png'), res=300, width=width, height=height, units = 'in')
+# png(file.path(tempdir(), 'fig_1.png'), res=300, width=width, height=height, units = 'in')
+png('LakeAnalyzer/fig_1.png', res=300, width=width, height=height, units = 'in')
 
 #layout(matrix(c(rep(1,10),rep(2,9)),ncol=1)) # 55% on the left panel
 par(mai=c(b_mar,l_mar,t_mar,0), omi = c(0.1,0,0,r_mar),xpd=FALSE,
