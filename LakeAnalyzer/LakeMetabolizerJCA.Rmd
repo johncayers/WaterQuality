@@ -1,0 +1,268 @@
+---
+title: "Lake Metabolism"
+output: html_notebook
+---
+
+Adapting some of the metabolism models in the package "LakeMetabolizer":
+
+Winslow L. A., Zwart J. A., Batt R. D., Dugan H. A., Woolway R. I., Corman J. R., Hanson P. C. and Read J. S. (2016) LakeMetabolizer: an R package for estimating lake metabolism from free-water oxygen using diverse statistical models. Inl. Waters 6, 622–636. Want instantaneous values of GPP and ER rather than just daily average values. Use sample data in LakeMetabolizer demo.
+
+Some of the code is from the demo files and some from the package.
+
+### Import data and define input values
+
+```{r}
+library(LakeMetabolizer)
+data.path = system.file('extdata/', package="LakeMetabolizer")
+sp.data = load.all.data('sparkling', data.path)
+ts.data = sp.data$data #pull out just the timeseries data
+
+
+#calculate U10 and add it back onto the original
+u10 = wind.scale(ts.data)
+ts.data = rmv.vars(ts.data, 'wnd', ignore.offset=TRUE) #drop old wind speed column
+ts.data = merge(ts.data, u10) #merge new u10 into big dataset
+
+
+#Now calculate k600 using the Cole method
+k600.cole = k.cole(ts.data)
+
+ts.data = merge(ts.data, k600.cole)
+
+kgas = k600.2.kGAS(ts.data)
+ts.data = rmv.vars(merge(kgas, ts.data), 'k600')
+
+o2.sat = o2.at.sat(ts.data[,c('datetime','wtr_0')])
+
+ts.data = merge(o2.sat, ts.data)
+z.mix = ts.meta.depths(get.vars(ts.data, 'wtr'), seasonal=TRUE)
+names(z.mix) = c('datetime','z.mix', 'bottom')
+
+#set z.mix to bottom of lake when undefined
+z.mix[z.mix$z.mix <=0 | is.na(z.mix$z.mix), 'z.mix'] = sp.data$metadata$maxdepth
+ts.data = merge(ts.data, z.mix[,c('datetime','z.mix')])
+
+```
+
+### Try reporting instantaneous values. First define functions.
+
+```{r}
+calc.freq <- function (datetime) 
+{
+  freq <- round(Mode(1/diff(date2doy(datetime))))
+}
+
+Mode <- function (x) 
+{
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+
+date2doy <- function (x) 
+{
+  stopifnot(any(grepl("^POSIX", class(x[1]))))
+  day <- as.numeric(format(x, "%j"))
+  pat <- quote("([0-9]{2}:){2}[0-9]{2}")
+  midnight <- as.POSIXct(gsub(pat, "00:00:00", x), tz = "GMT")
+  frac <- as.numeric(difftime(x, midnight, units = "days"))
+  day + frac
+}
+
+OLS_inst <- function (datetime, do.obs, do.sat, k.gas, z.mix, irr, wtr, ...) 
+{
+  # complete.inputs(do.obs = do.obs, do.sat = do.sat, k.gas = k.gas, 
+  #                 z.mix = z.mix, irr = irr, wtr = wtr, error = TRUE)
+  nobs <- length(do.obs)
+  mo.args <- list(...)
+  if (any(z.mix <= 0)) {
+    stop("z.mix must be greater than zero.")
+  }
+  if (any(wtr <= 0)) {
+    stop("all wtr must be positive.")
+  }
+  # if ("datetime" %in% names(mo.args)) {
+  #   datetime <- mo.args$datetime
+  #   freq <- calc.freq(datetime)
+  #   if (nobs != freq) {
+  #     bad.date <- format.Date(datetime[1], format = "%Y-%m-%d")
+  #     warning("number of observations on ", bad.date, " (", 
+  #             nobs, ") ", "does not equal estimated sampling frequency", 
+  #             " (", freq, ")", sep = "")
+  #   }
+  # }
+  # else {
+  #   warning("datetime not found, inferring sampling frequency from # of observations")
+  #   freq <- nobs
+  # }
+  freq <- calc.freq(datetime)
+  do.diff <- diff(do.obs)
+  inst_flux <- (k.gas/freq) * (do.sat - do.obs)
+  flux <- inst_flux[-nobs]
+  noflux.do.diff <- do.diff - flux/z.mix[-nobs]
+  lntemp <- log(wtr)
+  mod <- lm(noflux.do.diff ~ irr[-nobs] + lntemp[-nobs] - 1)
+  rho <- mod[[1]][2]
+  iota <- mod[[1]][1]
+  mod.matrix <- model.matrix(mod)
+  gpp <- iota * mod.matrix[, 1]*freq
+  resp <- rho * mod.matrix[, 2]*freq
+  nep <- gpp + resp
+  datetime <- datetime[-1]
+  inst.results <- list(mod = mod, metab = data.frame(datetime = datetime, GPP = gpp, 
+                                                R = resp, NEP = nep))
+  return(inst.results)
+}
+```
+
+### Now run ordinary least squares model
+
+```{r}
+ols.inst.res = OLS_inst(datetime = ts.data$datetime, 
+                        do.obs = ts.data$doobs_0.5, do.sat = ts.data$do.sat,
+                        k.gas = ts.data$k.gas, z.mix = ts.data$z.mix,
+                        irr = ts.data$par, wtr = ts.data$wtr_0.5)
+# Get error message when I run the following line
+#write.csv(ols.inst.res$metab, 'LakeAnalyzer/metab.ols.inst.csv', row.names=FALSE)
+ols.inst.res.df <- data.frame(ols.inst.res$metab)
+plot(ols.inst.res.df$datetime, ols.inst.res.df$GPP)
+
+```
+
+### Bayesian metabolism model. First define functions
+
+```{r}
+bayes.makeModel <- function (k.gas) 
+{
+  if (!requireNamespace("R2jags")) {
+    stop("metab.bayesian requires R2jags.\ninstall.packages('R2jags')\n #Also install JAGS (http://mcmc-jags.sourceforge.net/)")
+  }
+  finite.1oK <- is.finite(1/k.gas)
+  choose.allK <- all(finite.1oK)
+  choose.noK <- all(!finite.1oK)
+  choose.bothK <- any(finite.1oK) & any(!finite.1oK)
+  choice.mod <- c("allK", "noK", "bothK")[c(choose.allK, choose.noK, 
+                                            choose.bothK)]
+  jags.dir = system.file("jags", package = "LakeMetabolizer")
+  switch(choice.mod, allK = {
+    modfile = file.path(jags.dir, "bayes.mod.allk.JAGS")
+    print("using allK model")
+  }, noK = {
+    modfile = file.path(jags.dir, "bayes.mod.nok.JAGS")
+    print("using noK model")
+  }, bothK = {
+    modfile = file.path(jags.dir, "bayes.mod.bothk.JAGS")
+    print("using bothK model")
+  })
+  return(modfile)
+} 
+
+bayesFit <- function (data, params, mf, tend = "median", ...) 
+{
+  bf.args <- list(...)
+  jags.m <- R2jags::jags(data, NULL, parameters.to.save = params, 
+                         mf)
+  tF <- function(x, tend) {
+    switch(tend, median = median(x), mean = mean(x), mode1 = unique(x)[which.max(tabulate(match(x, 
+                                                                                                unique(x))))], mode2 = {
+                                                                                                  xd <- density(x)
+                                                                                                  xd$x[which.max(xd$y)]
+                                                                                                })
+  }
+  simOut <- jags.m$BUGSoutput$sims.matrix
+  ctSim <- apply(simOut, 2, tF, tend)
+  sdSim <- apply(simOut, 2, sd)
+  n.obs <- length(data$U[, 1])
+  GPP <- mean(ctSim[1] * data$U[, 1], na.rm = TRUE) * n.obs
+  R <- mean(ctSim[2] * data$U[, 2], na.rm = TRUE) * n.obs
+  GPPsd <- sqrt(sum(sdSim[1]^2 * data$U[, 1]^2))
+  Rsd <- sqrt(sum(sdSim[2]^2 * data$U[, 2]^2))
+  NEPsd <- sqrt(GPPsd^2 + Rsd^2)
+  return(list(model = jags.m, params = ctSim[1:2], metab.sd = matrix(c(GPPsd, 
+                                                                       Rsd, NEPsd), nrow = 1, dimnames = list(NULL, c("GPPsd", 
+                                                                                                                      "Rsd", "NEPsd"))), metab = matrix(c(GPP, R, GPP + R), 
+                                                                                                                                                        nrow = 1, dimnames = list(NULL, c("GPP", "R", "NEP")))))
+}
+
+BAYES_inst <- function (datetime, do.obs, do.sat, k.gas, z.mix, irr, wtr, priors, ...) 
+{
+  # complete.inputs(do.obs = do.obs, do.sat = do.sat, k.gas = k.gas, 
+  #                 z.mix = z.mix, irr = irr, wtr = wtr, error = TRUE)
+  # if (any(z.mix <= 0)) {
+  #   stop("z.mix must be greater than zero.")
+  # }
+  # if (any(wtr <= 0)) {
+  #   stop("all wtr must be positive.")
+  # }
+  mb.args <- list(...)
+  nobs <- length(do.obs)
+  # if ("datetime" %in% names(mb.args)) {
+  #   datetime <- mb.args$datetime
+  #   freq <- calc.freq(datetime)
+  #   if (nobs != freq) {
+  #     bad.date <- format.Date(datetime[1], format = "%Y-%m-%d")
+  #     warning("number of observations on ", bad.date, " (", 
+  #             nobs, ") ", "does not equal estimated sampling frequency", 
+  #             " (", freq, ")", sep = "")
+  #   }
+  # }
+  # else {
+  #   warning("datetime not found, inferring sampling frequency from # of observations")
+  #   freq <- nobs
+  # }
+  freq <- calc.freq(datetime)
+  if (!missing(priors)) {
+    t.priors <- priors
+    p.name.logic <- all(c(c("gppMu", "gppSig2", "rMu", "rSig2", 
+                            "kSig2")) %in% names(t.priors))
+    p.class.logic <- is.integer(t.priors) | is.numeric(t.priors)
+    if (p.name.logic & p.class.logic) {
+      priors <- t.priors
+    }
+    else {
+      stop("supplied priors was not a (properly) named numeric/integer vector")
+    }
+  }
+  else {
+    priors <- c(gppMu = 0, gppSig2 = 1e+05, rMu = 0, rSig2 = 1e+05, 
+                kSig2 = NA)
+  }
+  if (!all(c(is.numeric(do.obs), is.numeric(do.sat), is.numeric(k.gas), 
+             is.numeric(z.mix), is.numeric(irr), is.numeric(wtr)))) {
+    stop("All inputs to metab.bayes must be numeric vectors")
+  }
+  requireNamespace("R2jags")
+  modfile <- bayes.makeModel(k.gas = (k.gas/freq))
+  U <- matrix(NA, nrow = length(irr), ncol = 2)
+  U[, 1] <- irr
+  U[, 2] <- log(wtr)
+  kP <- matrix(NA, nrow = length(k.gas), ncol = 2)
+  kP[, 1] <- k.gas/freq
+  if (is.na(priors["kSig2"])) {
+    k0.logic <- !is.finite(1/kP[, 1])
+    kP[, 2] <- sum(kP[, 1])/sum(!k0.logic) * 0.1
+    kP[k0.logic, 2] <- 1e-09
+  }
+  else {
+    kP[, 2] <- priors["kSig2"]
+  }
+  cP <- matrix(NA, nrow = 2, ncol = 2)
+  cP[1, 1] <- priors["gppMu"]
+  cP[1, 2] <- priors["gppSig2"]
+  cP[2, 1] <- priors["rMu"]
+  cP[2, 2] <- priors["rSig2"]
+  data <- list(Y = do.obs, N = length(do.obs), U = U, kP = kP, 
+               cP = cP, satO = do.sat, a0 = do.obs[1], Zmix = z.mix)
+  params <- c("C", "sigmaV", "sigmaW")
+  output <- bayesFit(data, params, mf = modfile)
+  return(output)
+}
+```
+
+### Run Bayesian model
+
+```{r}
+bayes.inst.res = BAYES_inst(datetime = ts.data$datetime, do.obs = ts.data$doobs_0.5, do.sat = ts.data$do.sat, k.gas = ts.data$k.gas,
+                        z.mix = ts.data$z.mix, irr = ts.data$par, wtr = ts.data$wtr_0.5)
+write.csv(bayes.inst.res$metab, 'LakeAnalyzer/metab.bayes.inst.csv', row.names=FALSE)
+
+```
