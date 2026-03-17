@@ -1,6 +1,8 @@
 ---
 title: "Lake Metabolism"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 Adapting some of the metabolism models in the package "LakeMetabolizer":
