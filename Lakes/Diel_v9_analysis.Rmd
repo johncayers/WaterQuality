@@ -653,6 +653,11 @@ p_ca_si <- ggplot(df_ca_si, aes(x = DateTime)) +
   night_rect(night_df) +
   geom_line(aes(y = Ca_measured_mgL,   colour = "Ca (mg/L)"),
             linewidth = 0.7) +
+  geom_point(
+    data   = obs_subsample,
+    aes(y = Ca_measured_mgL, colour = "Ca (mg/L)"),
+    shape  = 1, size = 2.5, stroke = 0.8
+  ) +
   geom_line(aes(y = SI_scaled,         colour = "SI Calcite (modeled)"),
             linewidth = 0.7, linetype = "dashed") +
   geom_point(
